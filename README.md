@@ -353,6 +353,18 @@ Como o frete é calculado (US09):
 - Autocomplete de CEP: BrasilAPI, com **ViaCEP** como alternativa.
 - O checkout **recalcula** o frete no servidor — o valor enviado pelo front-end nunca é usado.
 
+### Carrinho
+
+| Método | Rota                    | Descrição                                                                         | Acesso  |
+| ------ | ----------------------- | --------------------------------------------------------------------------------- | ------- |
+| POST   | `/api/v1/cart/validate` | Valida itens com preços e estoque atuais (`{ items: [{ cupcakeId, quantity }] }`) | Público |
+
+O carrinho é mantido no front-end (persistido localmente). A API devolve cada item com
+`unitPriceCents` e `subtotalCents` **calculados no servidor**, `availableQuantity` e `status`
+(`OK`, `SOLD_OUT`, `INSUFFICIENT_STOCK`, `UNAVAILABLE`), além de `subtotalCents`, `issues` e
+`canCheckout` (falso se algum item estiver indisponível ou o total for zero — US08 RN#02).
+Limites: até 50 unidades por item e 30 cupcakes diferentes.
+
 ### Administração — catálogo
 
 | Método | Rota                                                 | Descrição                                                        | Acesso |

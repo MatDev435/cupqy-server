@@ -22,7 +22,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 - [x] **9. Imagens (Supabase Storage)** — URLs assinadas de upload, confirmação, substituição e remoção.
 - [x] **10. Estoque diário** — gestão pelo admin, alertas de estoque baixo.
 - [x] **11. Frete e loja** — consulta de CEP, geocodificação, cálculo de frete, informações da loja.
-- [ ] **12. Carrinho** — validação de itens, preços e estoque.
+- [x] **12. Carrinho** — validação de itens, preços e estoque.
 - [ ] **13. Pedidos** — checkout, listagem, histórico paginado, detalhes, cancelamento.
 - [ ] **14. Mercado Pago Checkout Pro** — preferências de pagamento.
 - [ ] **15. Webhooks de pagamento** — validação de assinatura, consulta ao gateway, confirmação

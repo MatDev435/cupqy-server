@@ -117,3 +117,11 @@ export function softDelete(id, db = prisma) {
     data: { deletedAt: new Date(), isActive: false },
   });
 }
+
+/** Cupcakes de um carrinho com o estoque da data (sem filtrar status; a regra fica no serviço). */
+export function findForCart(ids, stockDate, db = prisma) {
+  return db.cupcake.findMany({
+    where: { id: { in: ids } },
+    include: { dailyStocks: { where: { date: stockDate }, take: 1 } },
+  });
+}
