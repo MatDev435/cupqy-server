@@ -17,7 +17,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 - [x] **4. Perfil e endereços** — consulta/atualização de perfil e CRUD de endereços.
 - [x] **5. Exclusão de conta (LGPD)** — confirmação de senha, bloqueio por pedidos ativos, anonimização.
 - [x] **6. Gestão de usuários (admin)** — listagem e alteração de papéis.
-- [ ] **7. Catálogo público** — listagem, busca, filtros, detalhes, categorias e restrições.
+- [x] **7. Catálogo público** — listagem, busca, filtros, detalhes, categorias e restrições.
 - [ ] **8. Gestão do catálogo (admin)** — CRUD de cupcakes, categorias e restrições; exclusão lógica.
 - [ ] **9. Imagens (Supabase Storage)** — URLs assinadas de upload, confirmação, substituição e remoção.
 - [ ] **10. Estoque diário** — gestão pelo admin, alertas de estoque baixo.

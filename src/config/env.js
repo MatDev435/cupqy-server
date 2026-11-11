@@ -46,6 +46,10 @@ const envSchema = z.object({
   SUPABASE_URL: z.url({ protocol: /^https?$/ }),
   SUPABASE_ANON_KEY: z.string().min(20),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
+  SUPABASE_STORAGE_BUCKET: z
+    .string()
+    .regex(/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/, 'Nome de bucket inválido')
+    .default('cupcake-images'),
 
   // Loja
   STORE_TIMEZONE: z
@@ -110,6 +114,7 @@ export function parseEnv(rawEnv) {
       url: env.SUPABASE_URL.replace(/\/$/, ''),
       anonKey: env.SUPABASE_ANON_KEY,
       serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+      storageBucket: env.SUPABASE_STORAGE_BUCKET,
     },
     store: {
       timeZone: env.STORE_TIMEZONE,

@@ -86,3 +86,26 @@ export const atLeastOneField = (schema) =>
   schema.refine((data) => Object.values(data).some((value) => value !== undefined), {
     error: 'Informe ao menos um campo para atualizar.',
   });
+
+/**
+ * Lista em query string, aceitando "a,b" ou parâmetros repetidos (?x=a&x=b).
+ * @param {import('zod').ZodType} item Schema de cada item
+ */
+export const csvList = (item, max = 10) =>
+  z
+    .union([z.string(), z.array(z.string())])
+    .transform((value) =>
+      (Array.isArray(value) ? value : value.split(','))
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(item).max(max))
+    .optional();
+
+export const slug = () =>
+  z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Identificador (slug) inválido.')
+    .max(70);

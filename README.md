@@ -296,6 +296,32 @@ Prefixo da API: `/api/v1`. Rotas protegidas exigem `Authorization: Bearer <acces
 | PATCH  | `/api/v1/users/me/addresses/:addressId` | Atualiza endereço (ou define como padrão)  | Autenticado |
 | DELETE | `/api/v1/users/me/addresses/:addressId` | Remove endereço                            | Autenticado |
 
+### Catálogo (público)
+
+| Método | Rota                          | Descrição                                                          | Acesso  |
+| ------ | ----------------------------- | ------------------------------------------------------------------ | ------- |
+| GET    | `/api/v1/cupcakes`            | Lista o catálogo com busca, filtros, ordenação e paginação         | Público |
+| GET    | `/api/v1/cupcakes/flavors`    | Sabores disponíveis (para os filtros rápidos)                      | Público |
+| GET    | `/api/v1/cupcakes/:cupcakeId` | Detalhes: ingredientes, peso, tamanho, tabela nutricional, estoque | Público |
+| GET    | `/api/v1/categories`          | Categorias                                                         | Público |
+| GET    | `/api/v1/dietary-tags`        | Restrições alimentares (Sem Lactose, Vegano...)                    | Público |
+
+Parâmetros de `GET /cupcakes`:
+
+| Parâmetro          | Exemplo                           | Descrição                                          |
+| ------------------ | --------------------------------- | -------------------------------------------------- |
+| `search`           | `choco`                           | Nome parcial, sem diferenciar maiúsculas           |
+| `category`         | `classicos,frutados`              | Slugs de categoria (qualquer um)                   |
+| `flavor`           | `Chocolate`                       | Sabores (qualquer um)                              |
+| `dietaryTags`      | `sem-lactose,vegano`              | Restrições (o cupcake precisa atender a **todas**) |
+| `includeSoldOut`   | `true`                            | Inclui esgotados (padrão: apenas com estoque hoje) |
+| `sort`             | `name`, `price_asc`, `price_desc` | Ordenação                                          |
+| `page`, `pageSize` | `1`, `20`                         | Paginação (máx. 50 por página)                     |
+
+Cada cupcake traz `priceCents` (centavos), `imageUrl` (URL pública do Supabase Storage) e
+`stock: { available, soldOut }` referente ao **dia atual no fuso da loja**. Para refletir o
+"Esgotado" em tempo real, o front-end pode assinar a tabela `daily_stock` via Supabase Realtime.
+
 ### Administração — usuários
 
 | Método | Rota                               | Descrição                                                      | Acesso |
