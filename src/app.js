@@ -9,6 +9,7 @@ import { notFoundHandler } from './middlewares/notFound.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import healthRoutes from './routes/health.routes.js';
 import apiRoutes from './routes/index.js';
+import docsRoutes from './routes/docs.routes.js';
 
 /**
  * Cria a aplicação Express (sem abrir porta), permitindo testes com Supertest.
@@ -20,7 +21,14 @@ export function createApp() {
   app.set('trust proxy', config.server.trustProxy);
 
   app.use(requestLogger);
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        // Em HTTP local (desenvolvimento) não força HTTPS nos recursos do Swagger UI.
+        directives: { upgradeInsecureRequests: config.isProduction ? [] : null },
+      },
+    }),
+  );
   app.use(corsMiddleware(config.cors.origins));
   app.use(enforceHttps(config.server.forceHttps));
   app.use(globalRateLimiter);
@@ -28,6 +36,7 @@ export function createApp() {
 
   app.use(healthRoutes);
   app.use('/api/v1', apiRoutes);
+  if (config.server.docsEnabled) app.use(docsRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

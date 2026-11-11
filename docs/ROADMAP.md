@@ -32,7 +32,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 - [x] **18. Repetir pedido** — reconstrução do carrinho com preços e estoque atuais.
 - [x] **19. Gestão de pedidos (admin)** — listagem geral e cancelamento com reembolso.
 - [x] **20. Dashboard financeiro** — faturamento e contagem de pedidos por período.
-- [ ] **21. Documentação OpenAPI/Swagger**.
+- [x] **21. Documentação OpenAPI/Swagger**.
 - [ ] **22. Deploy (Render) e CI** — render.yaml, GitHub Actions.
 
 ## Registro de decisões técnicas

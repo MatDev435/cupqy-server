@@ -300,15 +300,21 @@ npm run test:coverage     # com cobertura (relatório em coverage/)
 
 ## Endpoints
 
+> **Documentação interativa (Swagger UI):** `GET /api/docs` — especificação OpenAPI 3.1 em
+> `GET /api/docs/openapi.json` (importável no Postman/Insomnia). Os schemas de entrada são gerados a
+> partir dos validators Zod, e um teste garante que toda rota documentada existe na API.
+> Para testar rotas protegidas, clique em **Authorize** e cole o access token do Supabase.
+
 Prefixo da API: `/api/v1`. Rotas protegidas exigem `Authorization: Bearer <access_token do Supabase>`.
 
 ### Infraestrutura
 
-| Método | Rota            | Descrição                                    | Acesso  |
-| ------ | --------------- | -------------------------------------------- | ------- |
-| GET    | `/health`       | Liveness (usado pelo health check do Render) | Público |
-| GET    | `/health/ready` | Readiness (verifica o banco de dados)        | Público |
-| GET    | `/api/v1`       | Informações da API                           | Público |
+| Método | Rota            | Descrição                                             | Acesso  |
+| ------ | --------------- | ----------------------------------------------------- | ------- |
+| GET    | `/health`       | Liveness (usado pelo health check do Render)          | Público |
+| GET    | `/health/ready` | Readiness (verifica o banco de dados)                 | Público |
+| GET    | `/api/v1`       | Informações da API                                    | Público |
+| GET    | `/api/docs`     | Swagger UI (desativável com `API_DOCS_ENABLED=false`) | Público |
 
 ### Perfil e endereços
 

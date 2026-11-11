@@ -36,6 +36,7 @@ const envSchema = z.object({
   TRUST_PROXY: z.string().default('1'),
   FORCE_HTTPS: booleanish.optional(),
   JSON_BODY_LIMIT: z.string().default('100kb'),
+  API_DOCS_ENABLED: booleanish.default(true),
 
   // Banco de dados (Supabase PostgreSQL)
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
@@ -141,6 +142,7 @@ export function parseEnv(rawEnv) {
       trustProxy: parseTrustProxy(env.TRUST_PROXY),
       forceHttps: env.FORCE_HTTPS ?? isProduction,
       jsonBodyLimit: env.JSON_BODY_LIMIT,
+      docsEnabled: env.API_DOCS_ENABLED,
     },
     cors: {
       origins: env.CORS_ORIGINS,

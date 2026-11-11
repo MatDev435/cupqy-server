@@ -135,3 +135,11 @@ describe('enforceHttps', () => {
     await request(buildApp(false)).post('/recurso').expect(200);
   });
 });
+
+describe('Content-Security-Policy', () => {
+  it('não força upgrade para HTTPS fora de produção (Swagger UI local)', async () => {
+    const response = await request(app).get('/health');
+    expect(response.headers['content-security-policy']).toContain("default-src 'self'");
+    expect(response.headers['content-security-policy']).not.toContain('upgrade-insecure-requests');
+  });
+});
