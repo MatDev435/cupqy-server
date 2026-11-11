@@ -632,6 +632,19 @@ proteção contra compras simultâneas (ver Pedidos e Pagamentos).
 O cancelamento pela loja de um pedido **já pago** solicita o **reembolso total** no Mercado Pago
 (idempotente) e devolve os itens ao estoque, se a baixa ocorreu no mesmo dia.
 
+### Administração — dashboard financeiro
+
+| Método | Rota                                   | Descrição                                         | Acesso |
+| ------ | -------------------------------------- | ------------------------------------------------- | ------ |
+| GET    | `/api/v1/admin/dashboard?period=today` | Indicadores do período (`today`, `week`, `month`) | Admin  |
+
+Retorna `revenueCents` e `completedOrders` (apenas pedidos **Concluídos** no período — US16 RN#01),
+`averageTicketCents`, `revenueByFulfillment`, `inProgress` (pagos ainda em andamento),
+`cancelledOrders`, `ordersByStatus` (pedidos criados no período), a série `daily` para gráficos e
+os 5 cupcakes mais vendidos (`topCupcakes`). Os períodos seguem o **fuso da loja**: hoje, semana
+(segunda a domingo) e mês vigente. Os cálculos são agregações no PostgreSQL apoiadas por índices
+em `(status, completed_at)`, sem carregar pedidos na memória (US16 RNF#01).
+
 ### Administração — usuários
 
 | Método | Rota                               | Descrição                                                      | Acesso |
