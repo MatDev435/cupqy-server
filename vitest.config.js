@@ -7,6 +7,8 @@ import { defineConfig } from 'vitest/config';
 const testEnv = {
   NODE_ENV: 'test',
   LOG_LEVEL: 'silent',
+  CORS_ORIGINS: 'http://localhost:5173',
+  RATE_LIMIT_ENABLED: 'false',
 };
 
 export default defineConfig({

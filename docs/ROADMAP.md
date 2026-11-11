@@ -8,7 +8,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 ## Etapas
 
 - [x] **0. Inicialização do projeto** — package.json, lint, formatação, Vitest, estrutura de docs.
-- [ ] **1. Aplicação Express** — app/server, configuração de ambiente validada, logs estruturados,
+- [x] **1. Aplicação Express** — app/server, configuração de ambiente validada, logs estruturados,
       CORS, Helmet, tratamento centralizado de erros, health check, encerramento gracioso.
 - [ ] **2. Banco de dados** — schema Prisma, migration inicial, RLS, seed, SQL do Supabase,
       harness de testes de integração com Postgres embutido.
