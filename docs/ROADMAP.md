@@ -15,7 +15,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 - [x] **3. Autenticação e autorização** — validação do token do Supabase Auth, criação de perfil,
       RBAC (cliente, confeiteiro, administrador).
 - [x] **4. Perfil e endereços** — consulta/atualização de perfil e CRUD de endereços.
-- [ ] **5. Exclusão de conta (LGPD)** — confirmação de senha, bloqueio por pedidos ativos, anonimização.
+- [x] **5. Exclusão de conta (LGPD)** — confirmação de senha, bloqueio por pedidos ativos, anonimização.
 - [ ] **6. Gestão de usuários (admin)** — listagem e alteração de papéis.
 - [ ] **7. Catálogo público** — listagem, busca, filtros, detalhes, categorias e restrições.
 - [ ] **8. Gestão do catálogo (admin)** — CRUD de cupcakes, categorias e restrições; exclusão lógica.
@@ -37,13 +37,15 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 
 ## Registro de decisões técnicas
 
-| Decisão                                                        | Motivo                                                                                                                             |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Prisma 7 com `prisma-client-js` + `@prisma/adapter-pg`         | Versão estável atual do Prisma; o gerador clássico funciona em JavaScript puro (ESM) sem etapa de build.                           |
-| Testes de integração com `embedded-postgres`                   | Postgres real (mesmo motor do Supabase) sem depender de Docker ou de serviços externos.                                            |
-| ESLint 9.39 (linha de manutenção)                              | A linha 10 trazia alerta de segurança em dependência transitiva; a 9.39 mantém `npm audit` limpo.                                  |
-| Valores monetários em centavos (inteiros)                      | Evita erros de ponto flutuante; convertidos para reais apenas na integração com o Mercado Pago.                                    |
-| RLS habilitado em todas as tabelas, sem políticas de escrita   | O Supabase expõe `public` via PostgREST; só a API (dona das tabelas) escreve. Políticas de leitura existem apenas para o Realtime. |
-| Perfil criado por trigger no Supabase **e** sob demanda na API | O trigger cobre o fluxo normal; a criação sob demanda garante funcionamento mesmo sem o SQL do Supabase aplicado.                  |
-| Validação do token via `supabase.auth.getUser(token)`          | Método oficial; além da assinatura, confirma que a sessão não foi encerrada (logout revoga o acesso imediatamente).                |
-| Recuperação de senha nativa do Supabase (link por e-mail)      | Alteração de requisito: substitui o código de 6 dígitos do documento original; nenhuma tabela ou endpoint próprio.                 |
+| Decisão                                                              | Motivo                                                                                                                                        |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prisma 7 com `prisma-client-js` + `@prisma/adapter-pg`               | Versão estável atual do Prisma; o gerador clássico funciona em JavaScript puro (ESM) sem etapa de build.                                      |
+| Testes de integração com `embedded-postgres`                         | Postgres real (mesmo motor do Supabase) sem depender de Docker ou de serviços externos.                                                       |
+| ESLint 9.39 (linha de manutenção)                                    | A linha 10 trazia alerta de segurança em dependência transitiva; a 9.39 mantém `npm audit` limpo.                                             |
+| Valores monetários em centavos (inteiros)                            | Evita erros de ponto flutuante; convertidos para reais apenas na integração com o Mercado Pago.                                               |
+| RLS habilitado em todas as tabelas, sem políticas de escrita         | O Supabase expõe `public` via PostgREST; só a API (dona das tabelas) escreve. Políticas de leitura existem apenas para o Realtime.            |
+| Perfil criado por trigger no Supabase **e** sob demanda na API       | O trigger cobre o fluxo normal; a criação sob demanda garante funcionamento mesmo sem o SQL do Supabase aplicado.                             |
+| Validação do token via `supabase.auth.getUser(token)`                | Método oficial; além da assinatura, confirma que a sessão não foi encerrada (logout revoga o acesso imediatamente).                           |
+| Recuperação de senha nativa do Supabase (link por e-mail)            | Alteração de requisito: substitui o código de 6 dígitos do documento original; nenhuma tabela ou endpoint próprio.                            |
+| Exclusão de conta: Supabase Auth primeiro, anonimização local depois | Se a exclusão no Auth falhar, nada muda e o usuário pode tentar de novo; o trigger `on_auth_user_deleted` também anonimiza, como redundância. |
+| Senha incorreta na exclusão retorna 422 (não 401)                    | Evita que interceptadores do front-end interpretem como sessão expirada e façam logout.                                                       |

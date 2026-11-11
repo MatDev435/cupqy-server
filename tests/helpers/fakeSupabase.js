@@ -10,6 +10,7 @@ const state = {
   passwords: new Map(),
   deletedUsers: new Set(),
   authOutage: false,
+  failNextDeletion: false,
 };
 
 const base64url = (value) => Buffer.from(value).toString('base64url');
@@ -20,6 +21,11 @@ export const fakeAuth = {
     state.passwords.clear();
     state.deletedUsers.clear();
     state.authOutage = false;
+    state.failNextDeletion = false;
+  },
+
+  failNextDeletion() {
+    state.failNextDeletion = true;
   },
 
   /** Emite um "Access Token" com formato de JWT para o usuário informado. */
@@ -67,6 +73,13 @@ export const supabaseAdmin = {
     },
     admin: {
       async deleteUser(userId) {
+        if (state.failNextDeletion) {
+          state.failNextDeletion = false;
+          return {
+            data: { user: null },
+            error: new AuthApiError('Database error', 500, undefined),
+          };
+        }
         state.deletedUsers.add(userId);
         return { data: { user: null }, error: null };
       },
