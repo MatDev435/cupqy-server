@@ -296,6 +296,20 @@ Prefixo da API: `/api/v1`. Rotas protegidas exigem `Authorization: Bearer <acces
 | PATCH  | `/api/v1/users/me/addresses/:addressId` | Atualiza endereço (ou define como padrão)  | Autenticado |
 | DELETE | `/api/v1/users/me/addresses/:addressId` | Remove endereço                            | Autenticado |
 
+### Administração — usuários
+
+| Método | Rota                               | Descrição                                                      | Acesso |
+| ------ | ---------------------------------- | -------------------------------------------------------------- | ------ |
+| GET    | `/api/v1/admin/users`              | Lista usuários (`search`, `role`, `includeDeleted`, paginação) | Admin  |
+| GET    | `/api/v1/admin/users/:userId`      | Detalha um usuário                                             | Admin  |
+| PATCH  | `/api/v1/admin/users/:userId/role` | Altera o papel (`CUSTOMER`, `BAKER`, `ADMIN`)                  | Admin  |
+
+Regras: o administrador não altera o próprio papel (`CANNOT_CHANGE_OWN_ROLE`) e o sistema nunca
+fica sem administrador (`LAST_ADMIN`, protegido inclusive contra alterações simultâneas).
+
+**Primeiro administrador:** depois de se cadastrar no app, rode
+`npm run admin:promote -- seu-email@dominio.com` (aceita `BAKER` como segundo argumento).
+
 ## Scripts
 
 | Comando                    | Descrição                                                     |
