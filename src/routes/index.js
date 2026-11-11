@@ -3,6 +3,7 @@ import pkg from '../../package.json' with { type: 'json' };
 import userRoutes from './user.routes.js';
 import adminRoutes from './admin/index.js';
 import catalogRoutes from './catalog.routes.js';
+import shippingRoutes from './shipping.routes.js';
 
 const router = Router();
 
@@ -11,6 +12,7 @@ router.get('/', (_req, res) => {
 });
 
 router.use(catalogRoutes);
+router.use(shippingRoutes);
 router.use('/users', userRoutes);
 router.use('/admin', adminRoutes);
 

@@ -57,6 +57,22 @@ const envSchema = z.object({
     .refine(isValidTimeZone, 'Fuso horário IANA inválido')
     .default('America/Sao_Paulo'),
   LOW_STOCK_THRESHOLD: z.coerce.number().int().min(1).max(1000).default(5),
+  STORE_NAME: z.string().min(1).default('Cupqy'),
+  STORE_ADDRESS: z.string().min(1).default('Rua Augusta, 1500 - Consolação, São Paulo - SP'),
+  STORE_LATITUDE: z.coerce.number().min(-90).max(90).default(-23.5558),
+  STORE_LONGITUDE: z.coerce.number().min(-180).max(180).default(-46.6622),
+  STORE_PREPARATION_MINUTES: z.coerce.number().int().min(0).max(600).default(30),
+
+  // Frete (US09)
+  DELIVERY_BASE_FEE_CENTS: z.coerce.number().int().min(0).default(500),
+  DELIVERY_FEE_PER_KM_CENTS: z.coerce.number().int().min(0).default(150),
+  DELIVERY_MAX_DISTANCE_KM: z.coerce.number().positive().max(200).default(15),
+  DELIVERY_ROUTE_FACTOR: z.coerce.number().min(1).max(3).default(1.3),
+  DELIVERY_AVERAGE_SPEED_KMH: z.coerce.number().positive().max(120).default(25),
+
+  // APIs externas de CEP e geocodificação
+  EXTERNAL_HTTP_TIMEOUT_MS: z.coerce.number().int().min(500).max(30_000).default(4000),
+  GEOCODING_USER_AGENT: z.string().min(3).default('cupqy-server/1.0'),
 
   // Rate limiting
   RATE_LIMIT_ENABLED: booleanish.default(true),
@@ -118,8 +134,24 @@ export function parseEnv(rawEnv) {
       storageBucket: env.SUPABASE_STORAGE_BUCKET,
     },
     store: {
+      name: env.STORE_NAME,
+      address: env.STORE_ADDRESS,
+      latitude: env.STORE_LATITUDE,
+      longitude: env.STORE_LONGITUDE,
+      preparationMinutes: env.STORE_PREPARATION_MINUTES,
       timeZone: env.STORE_TIMEZONE,
       lowStockThreshold: env.LOW_STOCK_THRESHOLD,
+    },
+    delivery: {
+      baseFeeCents: env.DELIVERY_BASE_FEE_CENTS,
+      feePerKmCents: env.DELIVERY_FEE_PER_KM_CENTS,
+      maxDistanceKm: env.DELIVERY_MAX_DISTANCE_KM,
+      routeFactor: env.DELIVERY_ROUTE_FACTOR,
+      averageSpeedKmh: env.DELIVERY_AVERAGE_SPEED_KMH,
+    },
+    externalApis: {
+      timeoutMs: env.EXTERNAL_HTTP_TIMEOUT_MS,
+      geocodingUserAgent: env.GEOCODING_USER_AGENT,
     },
     rateLimit: {
       enabled: env.RATE_LIMIT_ENABLED,

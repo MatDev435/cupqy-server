@@ -322,6 +322,37 @@ Cada cupcake traz `priceCents` (centavos), `imageUrl` (URL pública do Supabase 
 `stock: { available, soldOut }` referente ao **dia atual no fuso da loja**. Para refletir o
 "Esgotado" em tempo real, o front-end pode assinar a tabela `daily_stock` via Supabase Realtime.
 
+### Loja e frete
+
+| Método | Rota                        | Descrição                                                | Acesso      |
+| ------ | --------------------------- | -------------------------------------------------------- | ----------- |
+| GET    | `/api/v1/store`             | Endereço da loja, prazo de retirada e regras de frete    | Público     |
+| GET    | `/api/v1/shipping/cep/:cep` | Autocompleta rua, bairro, cidade e UF pelo CEP           | Público     |
+| POST   | `/api/v1/shipping/quote`    | Cota frete e prazo (`PICKUP` ou `DELIVERY` com endereço) | Autenticado |
+
+Corpo de `POST /shipping/quote`:
+
+```jsonc
+{ "fulfillmentType": "PICKUP" }
+// ou endereço salvo
+{ "fulfillmentType": "DELIVERY", "addressId": "<uuid>" }
+// ou endereço informado na hora
+{ "fulfillmentType": "DELIVERY", "address": { "zipCode": "01310-100", "street": "Av. Paulista",
+  "number": "1000", "complement": "Apto 12", "neighborhood": "Bela Vista", "city": "São Paulo", "state": "SP" } }
+```
+
+Como o frete é calculado (US09):
+
+- **Retirada:** frete R$ 0,00 e prazo = tempo médio de preparo.
+- **Delivery:** o endereço é geocodificado (coordenadas do CEP pela **BrasilAPI**; se não houver,
+  busca do endereço completo no **Nominatim/OpenStreetMap**). A distância em linha reta até a loja
+  (Haversine) é multiplicada pelo fator de rota; `frete = taxa base + km × valor por km`. Endereços
+  além do raio máximo recebem `422 DELIVERY_OUT_OF_RANGE`.
+- Coordenadas de endereços salvos ficam em cache no banco (e há um cache em memória de 24 h), evitando
+  consultas repetidas às APIs externas.
+- Autocomplete de CEP: BrasilAPI, com **ViaCEP** como alternativa.
+- O checkout **recalcula** o frete no servidor — o valor enviado pelo front-end nunca é usado.
+
 ### Administração — catálogo
 
 | Método | Rota                                                 | Descrição                                                        | Acesso |
