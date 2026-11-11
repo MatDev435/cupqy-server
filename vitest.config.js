@@ -11,6 +11,9 @@ const testEnv = {
   RATE_LIMIT_ENABLED: 'false',
   // Testes unitários nunca conectam; os de integração sobrescrevem com o banco embutido.
   DATABASE_URL: 'postgresql://unit:unit@127.0.0.1:1/unit_tests_do_not_connect',
+  SUPABASE_URL: 'http://127.0.0.1:1/supabase-not-used-in-tests',
+  SUPABASE_ANON_KEY: 'test-anon-key-not-a-real-secret',
+  SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key-not-a-real-secret',
 };
 
 export default defineConfig({

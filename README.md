@@ -156,6 +156,105 @@ O modelo de dados está em [`prisma/schema.prisma`](prisma/schema.prisma). Ponto
    - publicação das tabelas `orders`, `order_status_history` e `daily_stock` no Realtime.
 5. (Opcional) `npm run db:seed -- --with-stock` para dados de exemplo.
 
+## Autenticação e autorização
+
+A autenticação é **inteiramente gerenciada pelo Supabase Auth**. A API não cria JWTs, não
+armazena senhas e não implementa login.
+
+| Responsabilidade                                           | Onde                    |
+| ---------------------------------------------------------- | ----------------------- |
+| Cadastro, login, logout, sessão e renovação de tokens      | Front-end (supabase-js) |
+| Recuperação de senha (link por e-mail, enviado via Resend) | Supabase Auth + Resend  |
+| Validar o Access Token e identificar o usuário             | API (`authenticate`)    |
+| Papéis e permissões (RBAC)                                 | API (`authorize`)       |
+
+Fluxo de uma requisição protegida:
+
+1. O front-end envia `Authorization: Bearer <access_token>` (obtido com `supabase.auth.getSession()`).
+2. O middleware `authenticate` valida o token com `supabase.auth.getUser(token)` — sessões
+   encerradas no logout deixam de ser aceitas.
+3. O perfil local é carregado (ou criado como `CUSTOMER` no primeiro acesso) e o **papel é lido do
+   banco** — nunca de dados enviados pelo cliente ou dos metadados editáveis do Supabase.
+4. O middleware `authorize(permissão)` verifica o RBAC antes de chegar ao controller.
+
+| Código de erro     | Status | Situação                               |
+| ------------------ | ------ | -------------------------------------- |
+| `MISSING_TOKEN`    | 401    | Cabeçalho `Authorization` ausente      |
+| `INVALID_TOKEN`    | 401    | Token malformado, expirado ou revogado |
+| `ACCOUNT_DELETED`  | 403    | Conta encerrada (LGPD)                 |
+| `FORBIDDEN`        | 403    | Papel sem permissão para a rota        |
+| `AUTH_UNAVAILABLE` | 503    | Supabase Auth indisponível             |
+
+### Papéis (RBAC)
+
+| Permissão                               | Cliente | Confeiteiro | Administrador |
+| --------------------------------------- | :-----: | :---------: | :-----------: |
+| Perfil e endereços próprios             |   ✅    |     ✅      |      ✅       |
+| Criar e acompanhar os próprios pedidos  |   ✅    |     ✅      |      ✅       |
+| Painel da cozinha / ver qualquer pedido |    —    |     ✅      |      ✅       |
+| Produtos, categorias e imagens          |    —    |      —      |      ✅       |
+| Estoque diário                          |    —    |      —      |      ✅       |
+| Gestão de pedidos e reembolsos          |    —    |      —      |      ✅       |
+| Dashboard financeiro                    |    —    |      —      |      ✅       |
+| Gestão de usuários e papéis             |    —    |      —      |      ✅       |
+
+O mapa completo está em [`src/config/permissions.js`](src/config/permissions.js).
+
+### Configuração do Supabase Auth
+
+No painel do Supabase (**Authentication**):
+
+1. **Sign In / Providers → Email**: habilite o provedor de e-mail e **Confirm email**.
+2. **Policies de senha** (_Authentication → Sign In / Providers → Password_): mínimo de **8
+   caracteres** exigindo **letras e dígitos** (US01 — RN#02).
+3. **Expiração do link de confirmação**: em _Email → OTP Expiration_, use `86400` segundos (24 h;
+   o link é de uso único — US01 — RN#03).
+4. **URL Configuration**:
+   - _Site URL_: URL do front-end em produção (ex.: `https://cupqy.vercel.app`).
+   - _Redirect URLs_: `http://localhost:5173/**`, `https://cupqy.vercel.app/**` e, para previews,
+     `https://cupqy-*.vercel.app/**`.
+5. **Recuperação de senha** (fluxo nativo, baseado em link — substitui o código de 6 dígitos do
+   documento original):
+   1. O front-end chama `supabase.auth.resetPasswordForEmail(email, { redirectTo: 'https://cupqy.vercel.app/redefinir-senha' })`.
+      O Supabase responde sucesso mesmo para e-mails inexistentes (evita enumeração de contas).
+   2. O usuário recebe o e-mail (entregue pelo Resend) e abre o link.
+   3. O front-end, na rota `/redefinir-senha`, recebe o evento `PASSWORD_RECOVERY` e chama
+      `supabase.auth.updateUser({ password })`.
+   - Não existem tabelas, códigos ou endpoints de recuperação na API.
+6. **Bot and Abuse Protection**: habilite o **CAPTCHA** (hCaptcha ou Cloudflare Turnstile) para
+   proteger login e cadastro contra tentativas automatizadas (US02).
+7. **Cadastro com nome e telefone**: o front-end envia os dados em `options.data`:
+   `supabase.auth.signUp({ email, password, options: { data: { full_name, phone } } })`.
+   O trigger de `supabase/sql/01_security.sql` cria o perfil com esses dados (papel sempre `CUSTOMER`).
+
+### Configuração do Resend (SMTP do Supabase Auth)
+
+O Resend é usado **apenas** como servidor SMTP do Supabase Auth (confirmação de cadastro e
+recuperação de senha). A API não envia e-mails diretamente.
+
+1. Em [resend.com](https://resend.com), adicione e **verifique o domínio** de envio (ex.:
+   `cupqy.com.br`), criando os registros DNS de **SPF** e **DKIM** indicados (US01 — RNF#02,
+   evita que os e-mails caiam no spam). Recomenda-se também um registro **DMARC**.
+2. Crie uma **API Key** com permissão de envio.
+3. No Supabase, em **Authentication → Emails → SMTP Settings**, habilite _Custom SMTP_:
+
+   | Campo        | Valor                                 |
+   | ------------ | ------------------------------------- |
+   | Host         | `smtp.resend.com`                     |
+   | Port         | `465`                                 |
+   | Username     | `resend`                              |
+   | Password     | a API Key do Resend                   |
+   | Sender email | `nao-responda@seu-dominio-verificado` |
+   | Sender name  | `Cupqy`                               |
+
+4. Em **Authentication → Emails → Templates**, personalize os textos de _Confirm signup_ e
+   _Reset password_ em português.
+5. Ajuste o _rate limit_ de e-mails em **Authentication → Rate Limits** (com SMTP próprio o limite
+   padrão de 2 e-mails/hora deixa de valer).
+
+As credenciais do Resend ficam somente no painel do Supabase — não há variáveis de ambiente do
+Resend nesta API.
+
 ## Testes
 
 ```bash

@@ -4,6 +4,9 @@ import { parseEnv as parse } from '../../../src/config/env.js';
 /** Variáveis obrigatórias mínimas; cada teste sobrescreve o que precisa. */
 const REQUIRED = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/cupqy',
+  SUPABASE_URL: 'https://projeto.supabase.co/',
+  SUPABASE_ANON_KEY: 'anon-key-com-mais-de-20-caracteres',
+  SUPABASE_SERVICE_ROLE_KEY: 'service-role-key-com-mais-de-20-caracteres',
 };
 
 const parseEnv = (env) => parse({ ...REQUIRED, ...env });
@@ -54,6 +57,13 @@ describe('parseEnv', () => {
       sslCa: 'linha1\nlinha2',
     });
     expect(config.store.timeZone).toBe('America/Sao_Paulo');
+  });
+
+  it('normaliza a URL do Supabase e exige as chaves', () => {
+    expect(parseEnv({}).supabase.url).toBe('https://projeto.supabase.co');
+    expect(() => parseEnv({ SUPABASE_SERVICE_ROLE_KEY: undefined })).toThrow(
+      /SUPABASE_SERVICE_ROLE_KEY/,
+    );
   });
 
   it('rejeita DATABASE_URL ausente, com protocolo errado ou fuso horário inválido', () => {

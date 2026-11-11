@@ -12,7 +12,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
       CORS, Helmet, tratamento centralizado de erros, health check, encerramento gracioso.
 - [x] **2. Banco de dados** — schema Prisma, migration inicial, RLS, seed, SQL do Supabase,
       harness de testes de integração com Postgres embutido.
-- [ ] **3. Autenticação e autorização** — validação do token do Supabase Auth, criação de perfil,
+- [x] **3. Autenticação e autorização** — validação do token do Supabase Auth, criação de perfil,
       RBAC (cliente, confeiteiro, administrador).
 - [ ] **4. Perfil e endereços** — consulta/atualização de perfil e CRUD de endereços.
 - [ ] **5. Exclusão de conta (LGPD)** — confirmação de senha, bloqueio por pedidos ativos, anonimização.
@@ -45,3 +45,5 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 | Valores monetários em centavos (inteiros)                      | Evita erros de ponto flutuante; convertidos para reais apenas na integração com o Mercado Pago.                                    |
 | RLS habilitado em todas as tabelas, sem políticas de escrita   | O Supabase expõe `public` via PostgREST; só a API (dona das tabelas) escreve. Políticas de leitura existem apenas para o Realtime. |
 | Perfil criado por trigger no Supabase **e** sob demanda na API | O trigger cobre o fluxo normal; a criação sob demanda garante funcionamento mesmo sem o SQL do Supabase aplicado.                  |
+| Validação do token via `supabase.auth.getUser(token)`          | Método oficial; além da assinatura, confirma que a sessão não foi encerrada (logout revoga o acesso imediatamente).                |
+| Recuperação de senha nativa do Supabase (link por e-mail)      | Alteração de requisito: substitui o código de 6 dígitos do documento original; nenhuma tabela ou endpoint próprio.                 |
