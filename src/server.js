@@ -1,7 +1,7 @@
 import { createApp } from './app.js';
 import { config } from './config/env.js';
 import { logger } from './config/logger.js';
-import { disconnectDatabase } from './config/prisma.js';
+import { disconnectDatabase, warnIfDatabaseTimezoneIsNotUtc } from './config/prisma.js';
 import { startJobs, stopJobs } from './jobs/scheduler.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -17,6 +17,7 @@ const server = app.listen(config.server.port, (error) => {
     process.exit(1);
   }
   logger.info(`Cupqy API ouvindo na porta ${config.server.port} (${config.env})`);
+  warnIfDatabaseTimezoneIsNotUtc();
   startJobs();
 });
 

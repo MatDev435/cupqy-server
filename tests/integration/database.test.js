@@ -120,3 +120,17 @@ describe('Banco de dados (PostgreSQL real)', () => {
     await expect(prisma.address.create({ data: address })).rejects.toThrow();
   });
 });
+
+describe('Fuso horário do banco', () => {
+  it('a sessão usa UTC, então instantes gravados pelo Prisma batem com o SQL', async () => {
+    const [{ timezone }] = await prisma.$queryRaw`SELECT current_setting('TimeZone') AS timezone`;
+    expect(timezone).toBe('UTC');
+
+    const profile = await prisma.profile.create({
+      data: { id: crypto.randomUUID(), deletedAt: new Date('2026-11-10T02:30:00Z') },
+    });
+    const [{ epoch }] = await prisma.$queryRaw`
+      SELECT extract(epoch FROM deleted_at)::bigint AS epoch FROM profiles WHERE id = ${profile.id}::uuid`;
+    expect(Number(epoch)).toBe(Date.parse('2026-11-10T02:30:00Z') / 1000);
+  });
+});

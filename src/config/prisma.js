@@ -34,6 +34,24 @@ export const prisma = new PrismaClient({
 prisma.$on('warn', (event) => logger.warn({ prisma: event }, 'Aviso do Prisma'));
 prisma.$on('error', (event) => logger.error({ prisma: event }, 'Erro do Prisma'));
 
+/**
+ * O Prisma grava DateTime sem fuso: a sessão do banco precisa estar em UTC
+ * (configurado pela migration database_timezone_utc). Registra um alerta caso contrário.
+ */
+export async function warnIfDatabaseTimezoneIsNotUtc() {
+  try {
+    const [{ timezone }] = await prisma.$queryRaw`SELECT current_setting('TimeZone') AS timezone`;
+    if (!['UTC', 'Etc/UTC', 'GMT'].includes(timezone)) {
+      logger.warn(
+        { timezone },
+        'O TimeZone da sessão do banco não é UTC; datas gravadas pelo Prisma ficarão deslocadas',
+      );
+    }
+  } catch (error) {
+    logger.warn({ err: error }, 'Não foi possível verificar o fuso horário do banco');
+  }
+}
+
 export async function checkDatabaseConnection() {
   await prisma.$queryRaw`SELECT 1`;
 }
