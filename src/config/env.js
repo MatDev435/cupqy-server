@@ -70,6 +70,10 @@ const envSchema = z.object({
   DELIVERY_ROUTE_FACTOR: z.coerce.number().min(1).max(3).default(1.3),
   DELIVERY_AVERAGE_SPEED_KMH: z.coerce.number().positive().max(120).default(25),
 
+  // Pedidos
+  PAYMENT_EXPIRATION_MINUTES: z.coerce.number().int().min(30).max(1440).default(30),
+  MAX_PENDING_ORDERS_PER_USER: z.coerce.number().int().min(1).max(50).default(5),
+
   // APIs externas de CEP e geocodificação
   EXTERNAL_HTTP_TIMEOUT_MS: z.coerce.number().int().min(500).max(30_000).default(4000),
   GEOCODING_USER_AGENT: z.string().min(3).default('cupqy-server/1.0'),
@@ -148,6 +152,10 @@ export function parseEnv(rawEnv) {
       maxDistanceKm: env.DELIVERY_MAX_DISTANCE_KM,
       routeFactor: env.DELIVERY_ROUTE_FACTOR,
       averageSpeedKmh: env.DELIVERY_AVERAGE_SPEED_KMH,
+    },
+    orders: {
+      paymentExpirationMinutes: env.PAYMENT_EXPIRATION_MINUTES,
+      maxPendingPerUser: env.MAX_PENDING_ORDERS_PER_USER,
     },
     externalApis: {
       timeoutMs: env.EXTERNAL_HTTP_TIMEOUT_MS,

@@ -365,6 +365,58 @@ O carrinho é mantido no front-end (persistido localmente). A API devolve cada i
 `canCheckout` (falso se algum item estiver indisponível ou o total for zero — US08 RN#02).
 Limites: até 50 unidades por item e 30 cupcakes diferentes.
 
+### Pedidos
+
+| Método | Rota                             | Descrição                                                  | Acesso                   |
+| ------ | -------------------------------- | ---------------------------------------------------------- | ------------------------ |
+| POST   | `/api/v1/orders`                 | Finaliza o checkout e cria o pedido                        | Autenticado              |
+| GET    | `/api/v1/orders?scope=`          | Meus pedidos (`active`, `history` ou `all`; 20 por página) | Autenticado              |
+| GET    | `/api/v1/orders/:orderId`        | Detalhes e acompanhamento do pedido                        | Dono, confeiteiro, admin |
+| POST   | `/api/v1/orders/:orderId/cancel` | Cancela o próprio pedido enquanto aguarda pagamento        | Dono                     |
+
+Corpo do checkout (`POST /orders`):
+
+```json
+{
+  "fulfillmentType": "DELIVERY",
+  "address": {
+    "zipCode": "01310-100",
+    "street": "Av. Paulista",
+    "number": "1000",
+    "neighborhood": "Bela Vista",
+    "city": "São Paulo",
+    "state": "SP"
+  },
+  "saveAddress": true,
+  "notes": "Sem granulado, por favor",
+  "items": [{ "cupcakeId": "<uuid>", "quantity": 2 }]
+}
+```
+
+Regras do checkout:
+
+- O carrinho é **reavaliado no servidor** (preço atual, cupcake ativo e estoque do dia); itens
+  indisponíveis retornam `409 CART_UNAVAILABLE` com a lista de problemas.
+- Frete e total são **recalculados no servidor**; campos de valores no corpo são rejeitados.
+- O pedido nasce como `AWAITING_PAYMENT` (US10 RN#03) e guarda nome e preço de cada item no
+  momento da compra. O **estoque não é reservado** — a baixa ocorre na confirmação do pagamento.
+- `saveAddress` (US09 RN#03) salva o endereço informado no perfil quando o pagamento for confirmado.
+- O pedido expira após `PAYMENT_EXPIRATION_MINUTES` sem pagamento.
+
+Os detalhes trazem itens, valores, pagamento, `progress` (linha do tempo para a tela de
+acompanhamento — US11) e `statusHistory`. Informações de entrega só aparecem em pedidos de
+delivery e o nome do entregador só depois da saída para entrega.
+
+| Status             | Rótulo                | Fluxo            |
+| ------------------ | --------------------- | ---------------- |
+| `AWAITING_PAYMENT` | Aguardando pagamento  | inicial          |
+| `IN_PREPARATION`   | Em preparo            | após o pagamento |
+| `AWAITING_COURIER` | Aguardando entregador | delivery         |
+| `OUT_FOR_DELIVERY` | Saiu para entrega     | delivery         |
+| `AWAITING_PICKUP`  | Pronto para retirada  | retirada         |
+| `COMPLETED`        | Concluído             | final            |
+| `CANCELLED`        | Cancelado             | final            |
+
 ### Administração — catálogo
 
 | Método | Rota                                                 | Descrição                                                        | Acesso |
