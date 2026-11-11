@@ -84,3 +84,36 @@ export async function listActiveFlavors(db = prisma) {
   });
   return rows.map((row) => row.flavor);
 }
+
+export function create(data, stockDate, db = prisma) {
+  return db.cupcake.create({ data, include: cupcakeInclude(stockDate) });
+}
+
+export function update(id, data, stockDate, db = prisma) {
+  return db.cupcake.update({ where: { id }, data, include: cupcakeInclude(stockDate) });
+}
+
+/** Substitui o conjunto de restrições alimentares do cupcake (use dentro de uma transação). */
+export async function replaceDietaryTags(cupcakeId, dietaryTagIds, db = prisma) {
+  await db.cupcakeDietaryTag.deleteMany({ where: { cupcakeId } });
+  if (dietaryTagIds.length > 0) {
+    await db.cupcakeDietaryTag.createMany({
+      data: dietaryTagIds.map((dietaryTagId) => ({ cupcakeId, dietaryTagId })),
+    });
+  }
+}
+
+export function countOrderItems(cupcakeId, db = prisma) {
+  return db.orderItem.count({ where: { cupcakeId } });
+}
+
+export function hardDelete(id, db = prisma) {
+  return db.cupcake.delete({ where: { id } });
+}
+
+export function softDelete(id, db = prisma) {
+  return db.cupcake.update({
+    where: { id },
+    data: { deletedAt: new Date(), isActive: false },
+  });
+}

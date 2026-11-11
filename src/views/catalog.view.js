@@ -47,3 +47,14 @@ export function toCupcakeDetail(cupcake) {
     nutritionalInfo: cupcake.nutritionalInfo,
   };
 }
+
+/** Visão administrativa: inclui status, caminho da imagem e datas. */
+export function toAdminCupcake(cupcake) {
+  return {
+    ...toCupcakeDetail(cupcake),
+    isActive: cupcake.isActive,
+    imagePath: cupcake.imagePath,
+    createdAt: cupcake.createdAt,
+    updatedAt: cupcake.updatedAt,
+  };
+}

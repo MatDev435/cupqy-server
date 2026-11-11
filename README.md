@@ -322,6 +322,32 @@ Cada cupcake traz `priceCents` (centavos), `imageUrl` (URL pública do Supabase 
 `stock: { available, soldOut }` referente ao **dia atual no fuso da loja**. Para refletir o
 "Esgotado" em tempo real, o front-end pode assinar a tabela `daily_stock` via Supabase Realtime.
 
+### Administração — catálogo
+
+| Método | Rota                                       | Descrição                                                        | Acesso |
+| ------ | ------------------------------------------ | ---------------------------------------------------------------- | ------ |
+| GET    | `/api/v1/admin/cupcakes`                   | Lista ativos e inativos (`search`, `status`, `category`, `sort`) | Admin  |
+| POST   | `/api/v1/admin/cupcakes`                   | Cadastra cupcake                                                 | Admin  |
+| GET    | `/api/v1/admin/cupcakes/:cupcakeId`        | Detalha (inclui inativos)                                        | Admin  |
+| PATCH  | `/api/v1/admin/cupcakes/:cupcakeId`        | Edita dados, preço, status, categoria e restrições               | Admin  |
+| DELETE | `/api/v1/admin/cupcakes/:cupcakeId`        | Exclui (lógica se já vendido; física caso contrário)             | Admin  |
+| GET    | `/api/v1/admin/categories`                 | Lista categorias                                                 | Admin  |
+| POST   | `/api/v1/admin/categories`                 | Cria categoria (slug gerado automaticamente)                     | Admin  |
+| PATCH  | `/api/v1/admin/categories/:categoryId`     | Edita categoria                                                  | Admin  |
+| DELETE | `/api/v1/admin/categories/:categoryId`     | Remove categoria sem cupcakes vinculados                         | Admin  |
+| GET    | `/api/v1/admin/dietary-tags`               | Lista restrições alimentares                                     | Admin  |
+| POST   | `/api/v1/admin/dietary-tags`               | Cria restrição                                                   | Admin  |
+| PATCH  | `/api/v1/admin/dietary-tags/:dietaryTagId` | Renomeia restrição                                               | Admin  |
+| DELETE | `/api/v1/admin/dietary-tags/:dietaryTagId` | Remove restrição (e seus vínculos)                               | Admin  |
+
+Regras do catálogo:
+
+- Preço em **centavos**, inteiro e maior que zero (`priceCents: 1290` = R$ 12,90).
+- **Exclusão** (US15 — RN#01): cupcake já vendido é apenas **inativado** (`deletion: "soft"`),
+  preservando o histórico de pedidos; cupcake nunca vendido é removido do banco junto com a
+  imagem (`deletion: "hard"`). O banco também impede (FK `RESTRICT`) apagar um item vendido.
+- `isActive: false` tira o cupcake do catálogo público sem excluí-lo.
+
 ### Administração — usuários
 
 | Método | Rota                               | Descrição                                                      | Acesso |

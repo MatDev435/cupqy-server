@@ -11,6 +11,8 @@ const state = {
   deletedUsers: new Set(),
   authOutage: false,
   failNextDeletion: false,
+  storageObjects: new Map(),
+  removedObjects: [],
 };
 
 const base64url = (value) => Buffer.from(value).toString('base64url');
@@ -22,6 +24,8 @@ export const fakeAuth = {
     state.deletedUsers.clear();
     state.authOutage = false;
     state.failNextDeletion = false;
+    state.storageObjects.clear();
+    state.removedObjects.length = 0;
   },
 
   failNextDeletion() {
@@ -56,7 +60,35 @@ export const fakeAuth = {
   },
 };
 
+export const fakeStorage = {
+  /** Simula um arquivo já enviado ao bucket. */
+  put(bucket, path, metadata = { size: 1024, mimetype: 'image/webp' }) {
+    state.storageObjects.set(`${bucket}/${path}`, metadata);
+  },
+  has(bucket, path) {
+    return state.storageObjects.has(`${bucket}/${path}`);
+  },
+  removed() {
+    return [...state.removedObjects];
+  },
+};
+
+function storageBucket(bucket) {
+  return {
+    async remove(paths) {
+      for (const path of paths) {
+        state.storageObjects.delete(`${bucket}/${path}`);
+        state.removedObjects.push(path);
+      }
+      return { data: paths.map((name) => ({ name })), error: null };
+    },
+  };
+}
+
 export const supabaseAdmin = {
+  storage: {
+    from: (bucket) => storageBucket(bucket),
+  },
   auth: {
     async getUser(token) {
       if (state.authOutage) {
