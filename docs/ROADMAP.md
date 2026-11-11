@@ -10,7 +10,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 - [x] **0. Inicialização do projeto** — package.json, lint, formatação, Vitest, estrutura de docs.
 - [x] **1. Aplicação Express** — app/server, configuração de ambiente validada, logs estruturados,
       CORS, Helmet, tratamento centralizado de erros, health check, encerramento gracioso.
-- [ ] **2. Banco de dados** — schema Prisma, migration inicial, RLS, seed, SQL do Supabase,
+- [x] **2. Banco de dados** — schema Prisma, migration inicial, RLS, seed, SQL do Supabase,
       harness de testes de integração com Postgres embutido.
 - [ ] **3. Autenticação e autorização** — validação do token do Supabase Auth, criação de perfil,
       RBAC (cliente, confeiteiro, administrador).
@@ -37,8 +37,11 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 
 ## Registro de decisões técnicas
 
-| Decisão                                                | Motivo                                                                                                   |
-| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Prisma 7 com `prisma-client-js` + `@prisma/adapter-pg` | Versão estável atual do Prisma; o gerador clássico funciona em JavaScript puro (ESM) sem etapa de build. |
-| Testes de integração com `embedded-postgres`           | Postgres real (mesmo motor do Supabase) sem depender de Docker ou de serviços externos.                  |
-| ESLint 9.39 (linha de manutenção)                      | A linha 10 trazia alerta de segurança em dependência transitiva; a 9.39 mantém `npm audit` limpo.        |
+| Decisão                                                        | Motivo                                                                                                                             |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Prisma 7 com `prisma-client-js` + `@prisma/adapter-pg`         | Versão estável atual do Prisma; o gerador clássico funciona em JavaScript puro (ESM) sem etapa de build.                           |
+| Testes de integração com `embedded-postgres`                   | Postgres real (mesmo motor do Supabase) sem depender de Docker ou de serviços externos.                                            |
+| ESLint 9.39 (linha de manutenção)                              | A linha 10 trazia alerta de segurança em dependência transitiva; a 9.39 mantém `npm audit` limpo.                                  |
+| Valores monetários em centavos (inteiros)                      | Evita erros de ponto flutuante; convertidos para reais apenas na integração com o Mercado Pago.                                    |
+| RLS habilitado em todas as tabelas, sem políticas de escrita   | O Supabase expõe `public` via PostgREST; só a API (dona das tabelas) escreve. Políticas de leitura existem apenas para o Realtime. |
+| Perfil criado por trigger no Supabase **e** sob demanda na API | O trigger cobre o fluxo normal; a criação sob demanda garante funcionamento mesmo sem o SQL do Supabase aplicado.                  |

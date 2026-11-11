@@ -54,17 +54,28 @@ Requisição → routes → middlewares (auth, RBAC, validação) → controller
 ```
 .
 ├── docs/                 # Roadmap e documentação complementar
+├── prisma/
+│   ├── schema.prisma     # Modelo de dados
+│   ├── migrations/       # Migrations versionadas
+│   └── seed.js           # Dados de exemplo (catálogo e estoque)
+├── scripts/              # Utilitários (banco local, setup do Storage, promoção de admin)
+├── supabase/sql/         # RLS, triggers do Auth e Realtime (específicos do Supabase)
 ├── src/
 │   ├── app.js            # Criação da aplicação Express (sem abrir porta)
 │   ├── server.js         # Inicialização HTTP e encerramento gracioso
 │   ├── config/           # Ambiente, logger e clientes externos
 │   ├── controllers/
 │   ├── middlewares/
+│   ├── models/
 │   ├── routes/
 │   ├── services/
-│   └── utils/
+│   ├── utils/
+│   ├── validators/
+│   └── views/
 └── tests/
-    └── unit/             # Testes unitários e de rotas sem banco
+    ├── helpers/          # Fábricas de dados e utilitários de teste
+    ├── integration/      # Rotas e regras de negócio contra PostgreSQL real
+    └── unit/             # Testes unitários (sem banco)
 ```
 
 ## Pré-requisitos
@@ -77,12 +88,18 @@ Requisição → routes → middlewares (auth, RBAC, validação) → controller
 ```bash
 git clone https://github.com/MatDev435/cupqy-server.git
 cd cupqy-server
-npm install
+npm install            # também gera o Prisma Client
 cp .env.example .env   # preencha as variáveis
+npm run db:deploy      # aplica as migrations
+npm run db:seed -- --with-stock   # (opcional) catálogo de exemplo + estoque de hoje
 npm run dev
 ```
 
-A API sobe em `http://localhost:3333`. Verifique com `curl http://localhost:3333/health`.
+A API sobe em `http://localhost:3333`. Verifique com `curl http://localhost:3333/health/ready`.
+
+> **Sem projeto no Supabase ainda?** Rode `npm run db:local` em outro terminal: ele sobe um
+> PostgreSQL local (binário embutido, sem Docker) em `postgresql://postgres:postgres@127.0.0.1:54329/cupqy`.
+> Use essa URL em `DATABASE_URL` para desenvolver o que não depende do Supabase Auth.
 
 ## Variáveis de ambiente
 
@@ -90,25 +107,71 @@ Todas as variáveis estão documentadas em [`.env.example`](.env.example). A apl
 variáveis na inicialização e encerra com uma mensagem clara (sem expor valores) se algo estiver
 inválido.
 
-| Variável       | Descrição                                                       | Padrão                  |
-| -------------- | --------------------------------------------------------------- | ----------------------- |
-| `NODE_ENV`     | `development`, `test` ou `production`                           | `development`           |
-| `PORT`         | Porta HTTP (o Render injeta automaticamente)                    | `3333`                  |
-| `LOG_LEVEL`    | Nível de log do Pino                                            | `info` em produção      |
-| `CORS_ORIGINS` | Origens permitidas (vírgula); aceita `https://app-*.vercel.app` | `http://localhost:5173` |
-| `TRUST_PROXY`  | Proxies confiáveis à frente da API                              | `1`                     |
-| `FORCE_HTTPS`  | Exige HTTPS                                                     | `true` em produção      |
-| `RATE_LIMIT_*` | Limite global de requisições por IP                             | 1000 a cada 15 min      |
+| Variável            | Descrição                                                       | Padrão                  |
+| ------------------- | --------------------------------------------------------------- | ----------------------- |
+| `NODE_ENV`          | `development`, `test` ou `production`                           | `development`           |
+| `PORT`              | Porta HTTP (o Render injeta automaticamente)                    | `3333`                  |
+| `LOG_LEVEL`         | Nível de log do Pino                                            | `info` em produção      |
+| `CORS_ORIGINS`      | Origens permitidas (vírgula); aceita `https://app-*.vercel.app` | `http://localhost:5173` |
+| `TRUST_PROXY`       | Proxies confiáveis à frente da API                              | `1`                     |
+| `FORCE_HTTPS`       | Exige HTTPS                                                     | `true` em produção      |
+| `RATE_LIMIT_*`      | Limite global de requisições por IP                             | 1000 a cada 15 min      |
+| `DATABASE_URL`      | Conexão da API (pooler do Supabase, modo transação, porta 6543) | **obrigatória**         |
+| `DIRECT_URL`        | Conexão das migrations (pooler, modo sessão, porta 5432)        | usa `DATABASE_URL`      |
+| `DATABASE_POOL_MAX` | Conexões simultâneas por instância                              | `10`                    |
+| `DATABASE_SSL_CA`   | Certificado da CA do Supabase (PEM) para validar TLS            | —                       |
+| `STORE_TIMEZONE`    | Fuso horário da loja (estoque diário e relatórios)              | `America/Sao_Paulo`     |
+
+## Banco de dados
+
+O modelo de dados está em [`prisma/schema.prisma`](prisma/schema.prisma). Pontos importantes:
+
+- **Sem duplicar o Supabase Auth**: a tabela `profiles` guarda apenas dados complementares e o
+  papel do usuário; o `id` é o mesmo UUID de `auth.users`.
+- **Dinheiro em centavos** (inteiros) para evitar erros de arredondamento.
+- **Integridade no banco**: CHECKs garantem preço positivo, estoque não negativo, total do pedido
+  consistente e frete zero na retirada; `order_items` usa `RESTRICT`, impedindo apagar fisicamente
+  um cupcake já vendido.
+- **Histórico fiel**: itens do pedido guardam nome e preço do momento da compra; o endereço de
+  entrega é copiado para o pedido.
+- **Número do pedido** amigável a partir de `#1001`.
+- **RLS habilitado em todas as tabelas**: o acesso direto pela API REST do Supabase (chaves
+  anon/authenticated) é negado por padrão; a API conecta como dona das tabelas.
+
+### Configuração do Supabase (banco)
+
+1. Crie um projeto em [supabase.com](https://supabase.com) (região `South America (São Paulo)`).
+2. Em **Project Settings → Database → Connection string**, copie:
+   - **Transaction pooler** (porta 6543) → `DATABASE_URL`
+   - **Session pooler** (porta 5432) → `DIRECT_URL`
+     (o Render não tem saída IPv6, por isso use sempre o pooler, e não a conexão direta).
+3. Aplique as migrations: `npm run db:deploy`.
+4. Aplique o SQL específico do Supabase: `npm run db:supabase` (ou cole os arquivos de
+   [`supabase/sql/`](supabase/sql) no **SQL Editor**, na ordem). Ele configura:
+   - políticas RLS de **leitura** para o Supabase Realtime (cliente vê só os próprios pedidos;
+     confeiteiro/admin veem todos; estoque do dia é público);
+   - revogação de escrita direta para `anon`/`authenticated`;
+   - trigger que cria o perfil (sempre `CUSTOMER`) no cadastro;
+   - trigger de anonimização (LGPD) caso um usuário seja removido pelo painel;
+   - publicação das tabelas `orders`, `order_status_history` e `daily_stock` no Realtime.
+5. (Opcional) `npm run db:seed -- --with-stock` para dados de exemplo.
 
 ## Testes
 
 ```bash
-npm test               # todos os testes
-npm run test:unit      # apenas unitários
-npm run test:coverage  # com cobertura (relatório em coverage/)
+npm test                  # todos os testes (unitários + integração)
+npm run test:unit         # apenas unitários (rápidos, sem banco)
+npm run test:integration  # integração contra PostgreSQL real
+npm run test:coverage     # com cobertura (relatório em coverage/)
 ```
 
-Os testes não dependem de serviços externos: Supabase, Mercado Pago e APIs de CEP são simulados.
+- **Unitários** (`tests/unit`): regras de negócio, middlewares, validações e utilitários.
+- **Integração** (`tests/integration`): rotas completas via Supertest contra um **PostgreSQL real**,
+  iniciado automaticamente pelo pacote `embedded-postgres` (sem Docker). As migrations são aplicadas
+  a cada execução, e os scripts de `supabase/sql/` são validados com stubs do schema `auth`.
+  Para usar um servidor existente (ex.: no CI), defina `TEST_DATABASE_URL`.
+- Nenhum teste depende de serviços externos: Supabase Auth/Storage, Mercado Pago e APIs de CEP
+  são simulados.
 
 ## Endpoints
 
@@ -120,12 +183,19 @@ Os testes não dependem de serviços externos: Supabase, Mercado Pago e APIs de 
 
 ## Scripts
 
-| Comando                 | Descrição                                                  |
-| ----------------------- | ---------------------------------------------------------- |
-| `npm run dev`           | Inicia a API em modo desenvolvimento (reinicia ao salvar). |
-| `npm start`             | Inicia a API em modo produção.                             |
-| `npm test`              | Executa todos os testes.                                   |
-| `npm run test:unit`     | Executa apenas os testes unitários.                        |
-| `npm run test:coverage` | Executa os testes com relatório de cobertura.              |
-| `npm run lint`          | Verifica o código com ESLint.                              |
-| `npm run format`        | Formata o código com Prettier.                             |
+| Comando                    | Descrição                                                     |
+| -------------------------- | ------------------------------------------------------------- |
+| `npm run dev`              | Inicia a API em modo desenvolvimento (reinicia ao salvar).    |
+| `npm start`                | Inicia a API em modo produção.                                |
+| `npm test`                 | Executa todos os testes.                                      |
+| `npm run test:unit`        | Executa apenas os testes unitários.                           |
+| `npm run test:integration` | Executa os testes de integração (PostgreSQL embutido).        |
+| `npm run test:coverage`    | Executa os testes com relatório de cobertura.                 |
+| `npm run lint`             | Verifica o código com ESLint.                                 |
+| `npm run format`           | Formata o código com Prettier.                                |
+| `npm run db:deploy`        | Aplica as migrations pendentes.                               |
+| `npm run db:migrate`       | Cria/aplica migrations em desenvolvimento.                    |
+| `npm run db:supabase`      | Aplica RLS, triggers e Realtime do Supabase.                  |
+| `npm run db:seed`          | Popula o catálogo (`-- --with-stock` inclui estoque de hoje). |
+| `npm run db:local`         | Sobe um PostgreSQL local sem Docker (porta 54329).            |
+| `npm run db:studio`        | Abre o Prisma Studio.                                         |

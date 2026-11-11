@@ -9,6 +9,8 @@ const testEnv = {
   LOG_LEVEL: 'silent',
   CORS_ORIGINS: 'http://localhost:5173',
   RATE_LIMIT_ENABLED: 'false',
+  // Testes unitários nunca conectam; os de integração sobrescrevem com o banco embutido.
+  DATABASE_URL: 'postgresql://unit:unit@127.0.0.1:1/unit_tests_do_not_connect',
 };
 
 export default defineConfig({
@@ -28,6 +30,19 @@ export default defineConfig({
         test: {
           name: 'unit',
           include: ['tests/unit/**/*.test.js'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'integration',
+          include: ['tests/integration/**/*.test.js'],
+          globalSetup: ['tests/integration/globalSetup.js'],
+          setupFiles: ['tests/integration/setup.js'],
+          // Os arquivos compartilham o mesmo banco: execução sequencial evita interferência.
+          fileParallelism: false,
+          testTimeout: 20_000,
+          hookTimeout: 120_000,
         },
       },
     ],
