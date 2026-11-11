@@ -24,7 +24,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 - [x] **11. Frete e loja** — consulta de CEP, geocodificação, cálculo de frete, informações da loja.
 - [x] **12. Carrinho** — validação de itens, preços e estoque.
 - [x] **13. Pedidos** — checkout, listagem, histórico paginado, detalhes, cancelamento.
-- [ ] **14. Mercado Pago Checkout Pro** — preferências de pagamento.
+- [x] **14. Mercado Pago Checkout Pro** — preferências de pagamento.
 - [ ] **15. Webhooks de pagamento** — validação de assinatura, consulta ao gateway, confirmação
       idempotente com baixa atômica de estoque, reembolso automático.
 - [ ] **16. Expiração de pedidos não pagos** — job periódico.

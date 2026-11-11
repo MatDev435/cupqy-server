@@ -2,8 +2,16 @@ import * as orderService from '../services/order.service.js';
 import { toOrderDetail, toOrderSummary } from '../views/order.view.js';
 
 export async function create(req, res) {
-  const order = await orderService.createOrder(req.user, req.validated.body);
-  res.status(201).json({ data: toOrderDetail(order) });
+  const { order, checkout } = await orderService.createOrder(req.user, req.validated.body);
+  res.status(201).json({ data: { ...toOrderDetail(order), checkout } });
+}
+
+export async function startPayment(req, res) {
+  const { order, checkout } = await orderService.startPayment(
+    req.user,
+    req.validated.params.orderId,
+  );
+  res.status(201).json({ data: { ...toOrderDetail(order), checkout } });
 }
 
 export async function list(req, res) {

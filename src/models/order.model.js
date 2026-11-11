@@ -74,3 +74,7 @@ export function anonymizeByUser(userId, db = prisma) {
            updated_at = now()
      WHERE user_id = ${userId}::uuid`;
 }
+
+export function setPreference(id, mpPreferenceId, db = prisma) {
+  return db.order.update({ where: { id }, data: { mpPreferenceId } });
+}

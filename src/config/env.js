@@ -70,6 +70,21 @@ const envSchema = z.object({
   DELIVERY_ROUTE_FACTOR: z.coerce.number().min(1).max(3).default(1.3),
   DELIVERY_AVERAGE_SPEED_KMH: z.coerce.number().positive().max(120).default(25),
 
+  // Front-end e URL pública da API (retornos e webhooks do Mercado Pago)
+  FRONTEND_URL: z.url({ protocol: /^https?$/ }).default('http://localhost:5173'),
+  FRONTEND_ORDER_PATH: z
+    .string()
+    .regex(/^\/.*:orderId/, 'Deve começar com "/" e conter ":orderId"')
+    .default('/pedidos/:orderId'),
+  API_PUBLIC_URL: z.url({ protocol: /^https?$/ }).optional(),
+
+  // Mercado Pago Checkout Pro
+  MERCADOPAGO_ACCESS_TOKEN: z.string().min(10).optional(),
+  MERCADOPAGO_WEBHOOK_SECRET: z.string().min(10).optional(),
+  MERCADOPAGO_SANDBOX: booleanish.default(true),
+  MERCADOPAGO_STATEMENT_DESCRIPTOR: z.string().max(22).default('CUPQY'),
+  MERCADOPAGO_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60_000).default(10_000),
+
   // Pedidos
   PAYMENT_EXPIRATION_MINUTES: z.coerce.number().int().min(30).max(1440).default(30),
   MAX_PENDING_ORDERS_PER_USER: z.coerce.number().int().min(1).max(50).default(5),
@@ -152,6 +167,20 @@ export function parseEnv(rawEnv) {
       maxDistanceKm: env.DELIVERY_MAX_DISTANCE_KM,
       routeFactor: env.DELIVERY_ROUTE_FACTOR,
       averageSpeedKmh: env.DELIVERY_AVERAGE_SPEED_KMH,
+    },
+    frontend: {
+      url: env.FRONTEND_URL.replace(/\/$/, ''),
+      orderPath: env.FRONTEND_ORDER_PATH,
+    },
+    api: {
+      publicUrl: env.API_PUBLIC_URL?.replace(/\/$/, ''),
+    },
+    mercadoPago: {
+      accessToken: env.MERCADOPAGO_ACCESS_TOKEN,
+      webhookSecret: env.MERCADOPAGO_WEBHOOK_SECRET,
+      sandbox: env.MERCADOPAGO_SANDBOX,
+      statementDescriptor: env.MERCADOPAGO_STATEMENT_DESCRIPTOR,
+      timeoutMs: env.MERCADOPAGO_TIMEOUT_MS,
     },
     orders: {
       paymentExpirationMinutes: env.PAYMENT_EXPIRATION_MINUTES,

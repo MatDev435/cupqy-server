@@ -8,6 +8,7 @@ import { buildPageMeta, toSkipTake } from '../utils/pagination.js';
 import { evaluateCart } from './cart.service.js';
 import { FINAL_STATUSES, OrderStatus } from './orderStatus.js';
 import * as shippingService from './shipping.service.js';
+import * as paymentService from './payment.service.js';
 
 const SCOPES = {
   active: Object.values(OrderStatus).filter((status) => !FINAL_STATUSES.includes(status)),
@@ -94,7 +95,59 @@ export async function createOrder(user, input) {
   );
 
   logger.info({ orderId: order.id, orderNumber: order.orderNumber }, 'Pedido criado');
-  return order;
+
+  try {
+    const checkout = await paymentService.createCheckout(order, user.profile ?? user);
+    return { order, checkout };
+  } catch (error) {
+    // Sem preferência de pagamento o pedido não pode ser pago: cancela para não ficar pendurado.
+    await cancelBySystem(order.id, 'PAYMENT_SETUP_FAILED', 'Falha ao iniciar o pagamento');
+    throw error;
+  }
+}
+
+async function cancelBySystem(orderId, reason, note) {
+  await prisma.$transaction(async (tx) => {
+    const updated = await orderModel.updateIfStatus(
+      orderId,
+      [OrderStatus.AWAITING_PAYMENT],
+      { status: OrderStatus.CANCELLED, cancelledAt: new Date(), cancellationReason: reason },
+      tx,
+    );
+    if (updated) {
+      await orderModel.addStatusHistory(
+        {
+          orderId,
+          fromStatus: OrderStatus.AWAITING_PAYMENT,
+          toStatus: OrderStatus.CANCELLED,
+          note,
+        },
+        tx,
+      );
+    }
+  });
+}
+
+/**
+ * Gera um novo link de pagamento para um pedido do cliente que ainda aguarda pagamento
+ * (ex.: o cliente fechou a janela do Checkout Pro ou o pagamento foi recusado — US10 CA#04).
+ */
+export async function startPayment(user, orderId) {
+  const order = await orderModel.findById(orderId);
+  if (!order || order.userId !== user.id) throw orderNotFound();
+
+  if (order.status !== OrderStatus.AWAITING_PAYMENT) {
+    throw AppError.conflict('Este pedido não está aguardando pagamento.', 'ORDER_NOT_PAYABLE');
+  }
+  if (order.paymentExpiresAt <= new Date()) {
+    throw AppError.conflict(
+      'O prazo para pagamento deste pedido expirou. Faça um novo pedido.',
+      'ORDER_PAYMENT_EXPIRED',
+    );
+  }
+
+  const checkout = await paymentService.createCheckout(order, user.profile ?? user);
+  return { order: await orderModel.findById(orderId), checkout };
 }
 
 /** Histórico de pedidos do cliente, do mais recente ao mais antigo (US12 — 20 por página). */

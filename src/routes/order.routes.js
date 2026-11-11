@@ -37,6 +37,13 @@ router.get(
   orderController.get,
 );
 router.post(
+  '/:orderId/payment',
+  authorize(Permissions.ORDERS_CREATE),
+  checkoutLimiter,
+  validate({ params: orderParams }),
+  orderController.startPayment,
+);
+router.post(
   '/:orderId/cancel',
   authorize(Permissions.ORDERS_READ_OWN),
   validate({ params: orderParams }),

@@ -402,6 +402,10 @@ Regras do checkout:
   momento da compra. O **estoque não é reservado** — a baixa ocorre na confirmação do pagamento.
 - `saveAddress` (US09 RN#03) salva o endereço informado no perfil quando o pagamento for confirmado.
 - O pedido expira após `PAYMENT_EXPIRATION_MINUTES` sem pagamento.
+- A resposta inclui `checkout: { preferenceId, checkoutUrl, sandbox, expiresAt }`: o front-end
+  redireciona o cliente para `checkoutUrl` (Checkout Pro), onde ele paga com **Pix ou cartão de
+  crédito**. Se a preferência não puder ser criada, o pedido é cancelado e a API responde
+  `502 PAYMENT_PROVIDER_ERROR`.
 
 Os detalhes trazem itens, valores, pagamento, `progress` (linha do tempo para a tela de
 acompanhamento — US11) e `statusHistory`. Informações de entrega só aparecem em pedidos de
