@@ -37,3 +37,8 @@ export async function syncPayment(req, res) {
   );
   res.json({ data: toOrderDetail(order) });
 }
+
+export async function reorder(req, res) {
+  const cart = await orderService.buildReorderCart(req.user, req.validated.params.orderId);
+  res.json({ data: cart });
+}

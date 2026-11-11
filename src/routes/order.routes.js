@@ -62,6 +62,12 @@ router.post(
   orderController.syncPayment,
 );
 router.post(
+  '/:orderId/reorder',
+  authorize(Permissions.ORDERS_CREATE),
+  validate({ params: orderParams }),
+  orderController.reorder,
+);
+router.post(
   '/:orderId/cancel',
   authorize(Permissions.ORDERS_READ_OWN),
   validate({ params: orderParams }),

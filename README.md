@@ -433,6 +433,11 @@ Regras do checkout:
   crédito**. Se a preferência não puder ser criada, o pedido é cancelado e a API responde
   `502 PAYMENT_PROVIDER_ERROR`.
 
+**Repetir pedido** (US12): `POST /orders/:id/reorder` não cria um pedido — devolve um carrinho com
+os mesmos cupcakes usando os **preços atuais** (RN#02), apenas com o que tem estoque hoje
+(quantidades ajustadas em `adjusted`) e a lista `unavailable` para o aviso em tela (RN#01). O
+front-end adiciona `items` ao carrinho local.
+
 Os detalhes trazem itens, valores, pagamento, `progress` (linha do tempo para a tela de
 acompanhamento — US11) e `statusHistory`. Informações de entrega só aparecem em pedidos de
 delivery e o nome do entregador só depois da saída para entrega.

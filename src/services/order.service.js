@@ -5,7 +5,7 @@ import { Permissions, hasPermission } from '../config/permissions.js';
 import * as orderModel from '../models/order.model.js';
 import { AppError } from '../utils/AppError.js';
 import { buildPageMeta, toSkipTake } from '../utils/pagination.js';
-import { evaluateCart } from './cart.service.js';
+import { CartItemStatus, evaluateCart } from './cart.service.js';
 import { FINAL_STATUSES, OrderStatus } from './orderStatus.js';
 import * as shippingService from './shipping.service.js';
 import * as paymentService from './payment.service.js';
@@ -215,4 +215,65 @@ export async function syncPayment(user, orderId, { paymentId } = {}) {
   await getOrderForUser(user, orderId);
   await paymentService.syncOrderPayments(orderId, { paymentId });
   return orderModel.findById(orderId);
+}
+
+/**
+ * "Repetir pedido" (US12 — CA#05): monta um carrinho com os mesmos cupcakes de um pedido anterior.
+ * RN#01: inclui apenas o que tem estoque hoje (quantidades ajustadas ao disponível) e informa o que
+ * ficou de fora. RN#02: usa os preços ATUAIS, não os da época do pedido original.
+ */
+export async function buildReorderCart(user, orderId) {
+  const order = await orderModel.findById(orderId);
+  if (!order || order.userId !== user.id) throw orderNotFound();
+
+  const cart = await evaluateCart(
+    order.items.map((item) => ({ cupcakeId: item.cupcakeId, quantity: item.quantity })),
+  );
+  const previousPrices = new Map(order.items.map((item) => [item.cupcakeId, item.unitPriceCents]));
+  const previousNames = new Map(order.items.map((item) => [item.cupcakeId, item.cupcakeName]));
+
+  const items = [];
+  const adjusted = [];
+  const unavailable = [];
+
+  for (const line of cart.items) {
+    if (line.status === CartItemStatus.OK || line.status === CartItemStatus.INSUFFICIENT_STOCK) {
+      const quantity = Math.min(line.quantity, line.availableQuantity);
+      if (quantity < line.quantity) {
+        adjusted.push({
+          cupcakeId: line.cupcakeId,
+          name: line.name,
+          requestedQuantity: line.quantity,
+          addedQuantity: quantity,
+        });
+      }
+      items.push({
+        cupcakeId: line.cupcakeId,
+        name: line.name,
+        flavor: line.flavor,
+        imageUrl: line.imageUrl,
+        unitPriceCents: line.unitPriceCents,
+        previousUnitPriceCents: previousPrices.get(line.cupcakeId),
+        quantity,
+        subtotalCents: line.unitPriceCents * quantity,
+      });
+    } else {
+      unavailable.push({
+        cupcakeId: line.cupcakeId,
+        name: line.name ?? previousNames.get(line.cupcakeId),
+        reason: line.status,
+      });
+    }
+  }
+
+  const subtotalCents = items.reduce((sum, item) => sum + item.subtotalCents, 0);
+  return {
+    sourceOrderId: order.id,
+    sourceOrderNumber: order.orderNumber,
+    items,
+    subtotalCents,
+    adjusted,
+    unavailable,
+    canCheckout: items.length > 0,
+  };
 }
