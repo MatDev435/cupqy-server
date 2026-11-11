@@ -98,3 +98,25 @@ export function findExpiredAwaitingPayment(before, limit, db = prisma) {
     take: limit,
   });
 }
+
+/** Pedidos da cozinha: pagos e em andamento, do pagamento mais antigo ao mais recente. */
+export function findForKitchen({ statuses, fulfillmentType }, db = prisma) {
+  return db.order.findMany({
+    where: { status: { in: statuses }, ...(fulfillmentType && { fulfillmentType }) },
+    include: {
+      items: { orderBy: { cupcakeName: 'asc' } },
+      user: { select: { fullName: true, phone: true } },
+    },
+    orderBy: [{ paidAt: 'asc' }, { orderNumber: 'asc' }],
+  });
+}
+
+export function findByIdForKitchen(id, db = prisma) {
+  return db.order.findUnique({
+    where: { id },
+    include: {
+      items: { orderBy: { cupcakeName: 'asc' } },
+      user: { select: { fullName: true, phone: true } },
+    },
+  });
+}

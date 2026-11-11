@@ -493,6 +493,56 @@ Garantias de integridade:
 - Pagamento **recusado** não cancela o pedido: o cliente pode tentar novamente
   (`POST /orders/:id/payment`). Nenhum dado de cartão passa pela API ou é armazenado.
 
+### Cozinha
+
+| Método | Rota                                      | Descrição                                                    | Acesso             |
+| ------ | ----------------------------------------- | ------------------------------------------------------------ | ------------------ |
+| GET    | `/api/v1/kitchen/orders`                  | Fila de pedidos pagos e ativos (`status`, `fulfillmentType`) | Confeiteiro, admin |
+| POST   | `/api/v1/kitchen/orders/:orderId/advance` | Avança o pedido para a próxima etapa (botão de ação rápida)  | Confeiteiro, admin |
+
+- A fila mostra apenas pedidos **pagos** e não finalizados, **do pagamento mais antigo para o mais
+  recente** (US13 RN#01/RN#02), com tempo decorrido, itens, observações, cliente, tipo de entrega e
+  `nextAction` (`nextStatus`, `label` para o botão e `requiresCourierName`).
+- `advance` segue o fluxo do tipo de entrega (US14 RN#01) e aceita
+  `{ "expectedStatus": "IN_PREPARATION", "courierName": "João" }`:
+  - `courierName` é obrigatório ao passar para **Saiu para entrega** (exibido ao cliente — US11 CA#04);
+  - `expectedStatus` ativa o controle otimista: se outra pessoa já avançou o pedido, a resposta é
+    `409 ORDER_STATUS_CHANGED` (cliques simultâneos nunca pulam etapas).
+- Cada alteração fica no histórico com o usuário responsável.
+
+### Tempo real (Supabase Realtime)
+
+A API grava as mudanças no banco e o **Supabase Realtime** as entrega ao front-end, com as políticas
+RLS de `supabase/sql/01_security.sql` garantindo que cada usuário receba apenas o que pode ver:
+
+```js
+// Painel da cozinha: novos pedidos pagos e mudanças de status (confeiteiro/admin veem todos)
+supabase
+  .channel('cozinha')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => recarregarFila())
+  .subscribe();
+
+// Acompanhamento do cliente (RLS: apenas os próprios pedidos)
+supabase
+  .channel(`pedido-${orderId}`)
+  .on(
+    'postgres_changes',
+    { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
+    () => recarregarPedido(),
+  )
+  .subscribe();
+
+// Catálogo: "Esgotado" em tempo real
+supabase
+  .channel('estoque')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_stock' }, atualizarEstoque)
+  .subscribe();
+```
+
+Recomenda-se usar o evento apenas como **gatilho** e buscar os dados completos na API (que aplica
+as regras de apresentação). Notificações push para o celular (US14 CA#04) dependem de um provedor de
+push fora da stack definida; o acompanhamento em tempo real cobre a atualização do cliente no app.
+
 ### Administração — catálogo
 
 | Método | Rota                                                 | Descrição                                                        | Acesso |

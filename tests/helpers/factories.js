@@ -50,3 +50,64 @@ export async function createCupcake({ stock = 10, tags = [], category, ...overri
   if (stock !== null) await setStock(cupcake.id, stock);
   return cupcake;
 }
+
+/**
+ * Cria diretamente no banco um pedido já pago (útil para cozinha, dashboard e admin).
+ * @param {{ userId: string, items: Array<{ cupcake: object, quantity: number }>, status?: string,
+ *   fulfillmentType?: 'PICKUP' | 'DELIVERY', paidAt?: Date, completedAt?: Date, notes?: string }} options
+ */
+export async function createPaidOrder({
+  userId,
+  items,
+  status = 'IN_PREPARATION',
+  fulfillmentType = 'PICKUP',
+  paidAt = new Date(),
+  completedAt = null,
+  createdAt,
+  notes = null,
+  deliveryFeeCents = fulfillmentType === 'DELIVERY' ? 500 : 0,
+}) {
+  const lines = items.map(({ cupcake, quantity }) => ({
+    cupcakeId: cupcake.id,
+    cupcakeName: cupcake.name,
+    unitPriceCents: cupcake.priceCents,
+    quantity,
+    subtotalCents: cupcake.priceCents * quantity,
+  }));
+  const subtotalCents = lines.reduce((sum, line) => sum + line.subtotalCents, 0);
+
+  return prisma.order.create({
+    data: {
+      userId,
+      status,
+      fulfillmentType,
+      subtotalCents,
+      deliveryFeeCents,
+      totalCents: subtotalCents + deliveryFeeCents,
+      notes,
+      paidAt,
+      completedAt,
+      ...(createdAt && { createdAt }),
+      stockDate: dateOnlyToDate(storeToday().dateOnly),
+      deliveryAddress:
+        fulfillmentType === 'DELIVERY'
+          ? {
+              zipCode: '01310100',
+              street: 'Avenida Paulista',
+              number: '1000',
+              complement: null,
+              neighborhood: 'Bela Vista',
+              city: 'São Paulo',
+              state: 'SP',
+            }
+          : undefined,
+      items: { create: lines },
+      statusHistory: {
+        create: [
+          { toStatus: 'AWAITING_PAYMENT', createdAt: new Date(paidAt.getTime() - 60_000) },
+          { fromStatus: 'AWAITING_PAYMENT', toStatus: 'IN_PREPARATION', createdAt: paidAt },
+        ],
+      },
+    },
+  });
+}

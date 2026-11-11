@@ -28,7 +28,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 - [x] **15. Webhooks de pagamento** — validação de assinatura, consulta ao gateway, confirmação
       idempotente com baixa atômica de estoque, reembolso automático.
 - [x] **16. Expiração de pedidos não pagos** — job periódico.
-- [ ] **17. Cozinha** — painel de pedidos ativos e avanço de status.
+- [x] **17. Cozinha** — painel de pedidos ativos e avanço de status.
 - [ ] **18. Repetir pedido** — reconstrução do carrinho com preços e estoque atuais.
 - [ ] **19. Gestão de pedidos (admin)** — listagem geral e cancelamento com reembolso.
 - [ ] **20. Dashboard financeiro** — faturamento e contagem de pedidos por período.
@@ -53,3 +53,4 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 | Frete por distância em linha reta × fator de rota                                | Atende "valor fixo por km" sem depender de API paga de rotas; geocodificação gratuita (BrasilAPI + Nominatim) e fator configurável. Um provedor de rotas pode ser plugado em `shipping.service` no futuro. |
 | Baixa de estoque na confirmação do pagamento, com reembolso automático se faltar | Segue a US17 RN#01 (sem reservar estoque no checkout); o caso raro de esgotar entre checkout e pagamento é tratado com cancelamento + reembolso idempotente.                                               |
 | Lock da linha do pedido + `SELECT ... FOR UPDATE` ordenado no estoque            | Serializa notificações duplicadas e impede overselling sob concorrência, sem deadlocks; validado com testes de concorrência em PostgreSQL real.                                                            |
+| Tempo real via Supabase Realtime (sem WebSocket próprio no Express)              | O front-end já usa o supabase-js; as políticas RLS filtram por usuário/papel e a API continua stateless (adequado ao Render).                                                                              |
