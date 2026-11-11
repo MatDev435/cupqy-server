@@ -1,0 +1,5 @@
+node_modules
+coverage
+.tmp
+prisma/migrations
+package-lock.json

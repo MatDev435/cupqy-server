@@ -1,0 +1,43 @@
+{
+  "name": "cupqy-server",
+  "version": "0.1.0",
+  "description": "API REST do Cupqy — e-commerce de cupcakes (Node.js, Express, Supabase, Prisma, Mercado Pago)",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "vitest run",
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:unit": "vitest run --project unit",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "license": "UNLICENSED",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.12"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.4",
+    "helmet": "^8.3.0",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^9.39.5",
+    "globals": "^17.14.0",
+    "pino-pretty": "^13.2.0",
+    "prettier": "^3.10.0",
+    "supertest": "^7.3.2",
+    "vitest": "^5.1.0"
+  }
+}

@@ -1,0 +1,23 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente (nunca versionar credenciais)
+.env
+.env.*
+!.env.example
+
+# Logs e relatórios
+logs/
+*.log
+npm-debug.log*
+coverage/
+
+# Banco embutido usado nos testes de integração
+.tmp/
+
+# Editores / SO
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
