@@ -14,7 +14,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
       harness de testes de integração com Postgres embutido.
 - [x] **3. Autenticação e autorização** — validação do token do Supabase Auth, criação de perfil,
       RBAC (cliente, confeiteiro, administrador).
-- [ ] **4. Perfil e endereços** — consulta/atualização de perfil e CRUD de endereços.
+- [x] **4. Perfil e endereços** — consulta/atualização de perfil e CRUD de endereços.
 - [ ] **5. Exclusão de conta (LGPD)** — confirmação de senha, bloqueio por pedidos ativos, anonimização.
 - [ ] **6. Gestão de usuários (admin)** — listagem e alteração de papéis.
 - [ ] **7. Catálogo público** — listagem, busca, filtros, detalhes, categorias e restrições.

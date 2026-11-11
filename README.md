@@ -274,11 +274,27 @@ npm run test:coverage     # com cobertura (relatório em coverage/)
 
 ## Endpoints
 
+Prefixo da API: `/api/v1`. Rotas protegidas exigem `Authorization: Bearer <access_token do Supabase>`.
+
+### Infraestrutura
+
 | Método | Rota            | Descrição                                    | Acesso  |
 | ------ | --------------- | -------------------------------------------- | ------- |
 | GET    | `/health`       | Liveness (usado pelo health check do Render) | Público |
-| GET    | `/health/ready` | Readiness (verifica dependências)            | Público |
+| GET    | `/health/ready` | Readiness (verifica o banco de dados)        | Público |
 | GET    | `/api/v1`       | Informações da API                           | Público |
+
+### Perfil e endereços
+
+| Método | Rota                                    | Descrição                                  | Acesso      |
+| ------ | --------------------------------------- | ------------------------------------------ | ----------- |
+| GET    | `/api/v1/users/me`                      | Perfil, papel e permissões do usuário      | Autenticado |
+| PATCH  | `/api/v1/users/me`                      | Atualiza nome e telefone                   | Autenticado |
+| GET    | `/api/v1/users/me/addresses`            | Lista endereços salvos (padrão primeiro)   | Autenticado |
+| POST   | `/api/v1/users/me/addresses`            | Salva endereço (máx. 10; o 1º vira padrão) | Autenticado |
+| GET    | `/api/v1/users/me/addresses/:addressId` | Detalha um endereço                        | Autenticado |
+| PATCH  | `/api/v1/users/me/addresses/:addressId` | Atualiza endereço (ou define como padrão)  | Autenticado |
+| DELETE | `/api/v1/users/me/addresses/:addressId` | Remove endereço                            | Autenticado |
 
 ## Scripts
 
