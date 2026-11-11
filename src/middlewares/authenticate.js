@@ -18,13 +18,3 @@ export async function authenticate(req, _res, next) {
   await attachUser(req, token);
   next();
 }
-
-/**
- * Autenticação opcional: rotas públicas que se beneficiam do usuário quando presente.
- * Um token enviado e inválido continua sendo rejeitado (401).
- */
-export async function optionalAuthenticate(req, _res, next) {
-  const token = authService.extractBearerToken(req.headers.authorization);
-  if (token) await attachUser(req, token);
-  next();
-}

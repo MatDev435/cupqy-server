@@ -1,6 +1,5 @@
 import { prisma } from '../config/prisma.js';
-
-export const FINAL_STATUSES = ['COMPLETED', 'CANCELLED'];
+import { FINAL_STATUSES } from '../services/orderStatus.js';
 
 export const orderDetailsInclude = {
   items: { orderBy: { cupcakeName: 'asc' } },

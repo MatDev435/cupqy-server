@@ -1,7 +1,7 @@
 import express from 'express';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
-import { authenticate, optionalAuthenticate } from '../../../src/middlewares/authenticate.js';
+import { authenticate } from '../../../src/middlewares/authenticate.js';
 import { authorize, requireRole } from '../../../src/middlewares/authorize.js';
 import { errorHandler } from '../../../src/middlewares/errorHandler.js';
 import { Permissions } from '../../../src/config/permissions.js';
@@ -61,26 +61,6 @@ describe('middleware authenticate', () => {
 
     expect(response.status).toBe(401);
     expect(response.body.error.code).toBe('INVALID_TOKEN');
-  });
-});
-
-describe('middleware optionalAuthenticate', () => {
-  it('segue sem usuário quando não há token', async () => {
-    const response = await request(buildApp(optionalAuthenticate)).get('/protegido');
-
-    expect(response.status).toBe(200);
-    expect(response.body.user).toBeNull();
-    expect(authService.authenticateRequest).not.toHaveBeenCalled();
-  });
-
-  it('rejeita token enviado e inválido', async () => {
-    vi.mocked(authService.authenticateRequest).mockRejectedValue(AppError.unauthorized());
-
-    const response = await request(buildApp(optionalAuthenticate))
-      .get('/protegido')
-      .set('Authorization', 'Bearer a.b.c');
-
-    expect(response.status).toBe(401);
   });
 });
 
