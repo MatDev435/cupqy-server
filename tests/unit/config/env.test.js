@@ -86,4 +86,20 @@ describe('parseEnv', () => {
     expect(message).not.toContain('abc');
     expect(message).not.toContain('staging');
   });
+
+  it('trata variáveis vazias do .env como não definidas', () => {
+    const config = parseEnv({
+      LOG_LEVEL: '',
+      FORCE_HTTPS: '',
+      API_PUBLIC_URL: '',
+      MERCADOPAGO_ACCESS_TOKEN: '',
+      MERCADOPAGO_WEBHOOK_SECRET: ' ',
+      DATABASE_SSL_CA: '',
+    });
+
+    expect(config.logLevel).toBe('debug');
+    expect(config.api.publicUrl).toBeUndefined();
+    expect(config.mercadoPago.accessToken).toBeUndefined();
+    expect(config.mercadoPago.webhookSecret).toBeUndefined();
+  });
 });

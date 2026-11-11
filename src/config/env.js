@@ -118,7 +118,11 @@ function parseTrustProxy(value) {
  * @param {Record<string, string | undefined>} rawEnv
  */
 export function parseEnv(rawEnv) {
-  const result = envSchema.safeParse(rawEnv);
+  // Variável presente porém vazia (ex.: "LOG_LEVEL=" no .env) equivale a não definida.
+  const cleaned = Object.fromEntries(
+    Object.entries(rawEnv).filter(([, value]) => value === undefined || value.trim() !== ''),
+  );
+  const result = envSchema.safeParse(cleaned);
 
   if (!result.success) {
     const problems = result.error.issues
