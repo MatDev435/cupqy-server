@@ -120,3 +120,30 @@ export function findByIdForKitchen(id, db = prisma) {
     },
   });
 }
+
+/** Listagem administrativa com filtros (status, tipo de entrega, período e número do pedido). */
+export async function searchAll(
+  { statuses, fulfillmentType, from, to, orderNumber, skip, take },
+  db = prisma,
+) {
+  const where = {
+    ...(statuses && { status: { in: statuses } }),
+    ...(fulfillmentType && { fulfillmentType }),
+    ...(orderNumber && { orderNumber }),
+    ...((from || to) && { createdAt: { ...(from && { gte: from }), ...(to && { lt: to }) } }),
+  };
+  const [items, total] = await Promise.all([
+    db.order.findMany({
+      where,
+      include: {
+        items: { orderBy: { cupcakeName: 'asc' } },
+        user: { select: { fullName: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+    }),
+    db.order.count({ where }),
+  ]);
+  return { items, total };
+}

@@ -621,6 +621,17 @@ pode ser vendido no dia. Dias passados não podem ser alterados (dias futuros po
 A gravação em lote é atômica. A **baixa automática** acontece na confirmação do pagamento, com
 proteção contra compras simultâneas (ver Pedidos e Pagamentos).
 
+### Administração — pedidos
+
+| Método | Rota                                   | Descrição                                                                   | Acesso |
+| ------ | -------------------------------------- | --------------------------------------------------------------------------- | ------ |
+| GET    | `/api/v1/admin/orders`                 | Todos os pedidos (`status`, `fulfillmentType`, `from`, `to`, `orderNumber`) | Admin  |
+| GET    | `/api/v1/admin/orders/:orderId`        | Detalhes de qualquer pedido                                                 | Admin  |
+| POST   | `/api/v1/admin/orders/:orderId/cancel` | Cancela pedido não finalizado (`{ "reason": "..." }`)                       | Admin  |
+
+O cancelamento pela loja de um pedido **já pago** solicita o **reembolso total** no Mercado Pago
+(idempotente) e devolve os itens ao estoque, se a baixa ocorreu no mesmo dia.
+
 ### Administração — usuários
 
 | Método | Rota                               | Descrição                                                      | Acesso |

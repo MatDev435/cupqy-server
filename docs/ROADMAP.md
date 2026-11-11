@@ -30,7 +30,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 - [x] **16. Expiração de pedidos não pagos** — job periódico.
 - [x] **17. Cozinha** — painel de pedidos ativos e avanço de status.
 - [x] **18. Repetir pedido** — reconstrução do carrinho com preços e estoque atuais.
-- [ ] **19. Gestão de pedidos (admin)** — listagem geral e cancelamento com reembolso.
+- [x] **19. Gestão de pedidos (admin)** — listagem geral e cancelamento com reembolso.
 - [ ] **20. Dashboard financeiro** — faturamento e contagem de pedidos por período.
 - [ ] **21. Documentação OpenAPI/Swagger**.
 - [ ] **22. Deploy (Render) e CI** — render.yaml, GitHub Actions.

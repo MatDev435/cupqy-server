@@ -326,7 +326,8 @@ async function handleReversalTx({ order, record, previous, tx }) {
   return { outcome: PaymentOutcome.RECORDED };
 }
 
-async function refund(record) {
+/** Solicita o reembolso total de um pagamento registrado (idempotente). */
+export async function refundPaymentRecord(record) {
   try {
     await gateway.refundPayment(record.providerPaymentId, {
       idempotencyKey: `refund-${record.providerPaymentId}`,
@@ -390,7 +391,7 @@ export async function applyPayment(payment, { expectedOrderId } = {}) {
     return { outcome: PaymentOutcome.RECORDED };
   }, TRANSACTION_OPTIONS);
 
-  if (result.refundRecord) await refund(result.refundRecord);
+  if (result.refundRecord) await refundPaymentRecord(result.refundRecord);
 
   logger.info(
     { orderId, paymentId: payment.id, status: payment.status, outcome: result.outcome },

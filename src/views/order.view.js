@@ -114,3 +114,14 @@ export function toOrderDetail(order) {
     updatedAt: order.updatedAt,
   };
 }
+
+/** Linha da listagem administrativa de pedidos. */
+export function toAdminOrderSummary(order) {
+  return {
+    ...toOrderSummary(order),
+    subtotalCents: order.subtotalCents,
+    deliveryFeeCents: order.deliveryFeeCents,
+    cancellationReason: order.cancellationReason,
+    customer: { name: order.user?.fullName ?? null, email: order.user?.email ?? null },
+  };
+}
