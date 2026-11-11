@@ -14,6 +14,8 @@ const testEnv = {
   SUPABASE_URL: 'http://127.0.0.1:1/supabase-not-used-in-tests',
   SUPABASE_ANON_KEY: 'test-anon-key-not-a-real-secret',
   SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key-not-a-real-secret',
+  MERCADOPAGO_ACCESS_TOKEN: 'TEST-0000000000000000-000000-not-a-real-token',
+  MERCADOPAGO_WEBHOOK_SECRET: 'test-webhook-secret-not-real',
 };
 
 export default defineConfig({

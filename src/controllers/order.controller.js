@@ -28,3 +28,12 @@ export async function cancel(req, res) {
   const order = await orderService.cancelMyOrder(req.user, req.validated.params.orderId);
   res.json({ data: toOrderDetail(order) });
 }
+
+export async function syncPayment(req, res) {
+  const order = await orderService.syncPayment(
+    req.user,
+    req.validated.params.orderId,
+    req.validated.body,
+  );
+  res.json({ data: toOrderDetail(order) });
+}

@@ -206,3 +206,13 @@ export async function cancelMyOrder(user, orderId) {
 
   return orderModel.findById(orderId);
 }
+
+/**
+ * Consulta o Mercado Pago e atualiza o pedido (retorno do Checkout Pro ou atraso do webhook).
+ * A confirmação vem SEMPRE do gateway, nunca dos parâmetros do redirecionamento.
+ */
+export async function syncPayment(user, orderId, { paymentId } = {}) {
+  await getOrderForUser(user, orderId);
+  await paymentService.syncOrderPayments(orderId, { paymentId });
+  return orderModel.findById(orderId);
+}

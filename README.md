@@ -255,6 +255,32 @@ recuperação de senha). A API não envia e-mails diretamente.
 As credenciais do Resend ficam somente no painel do Supabase — não há variáveis de ambiente do
 Resend nesta API.
 
+### Configuração do Mercado Pago (sandbox)
+
+Todo o desenvolvimento e a apresentação usam o **ambiente de testes** — nenhum dinheiro real é
+movimentado.
+
+1. Acesse [mercadopago.com.br/developers/panel](https://www.mercadopago.com.br/developers/panel) e
+   crie uma aplicação do tipo **Pagamentos online → Checkout Pro**.
+2. Em **Contas de teste**, crie dois usuários de teste: um **vendedor** e um **comprador**.
+3. Faça login com o **vendedor de teste**, abra a aplicação e copie o **Access Token** das
+   credenciais de teste para `MERCADOPAGO_ACCESS_TOKEN`. Mantenha `MERCADOPAGO_SANDBOX=true`.
+4. Configure os webhooks (**Suas integrações → aplicação → Webhooks → Configurar notificações**):
+   - **URL (modo de teste)**: `https://<sua-api>.onrender.com/api/v1/payments/webhooks/mercadopago`
+   - **Evento**: _Pagamentos_
+   - Copie a **assinatura secreta** gerada para `MERCADOPAGO_WEBHOOK_SECRET`.
+   - Defina também `API_PUBLIC_URL=https://<sua-api>.onrender.com` (a preferência envia a
+     `notification_url` com `source_news=webhooks`).
+5. Defina `FRONTEND_URL` com a URL do front-end (em HTTPS o retorno automático é ativado).
+6. Para pagar, abra o `checkoutUrl` retornado pelo checkout logado com o **comprador de teste** e use
+   os [cartões de teste](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/integration-test/test-cards)
+   — o nome do titular define o resultado: `APRO` (aprovado), `OTHE` (recusado), `CONT` (pendente).
+   O Pix de teste também pode ser usado no sandbox.
+
+> **Desenvolvimento local**: sem URL pública o Mercado Pago não consegue entregar webhooks em
+> `localhost`. Nesse caso o front-end deve chamar `POST /orders/:id/payment/sync` ao voltar do
+> Checkout Pro — a API consulta o pagamento no Mercado Pago e confirma o pedido da mesma forma.
+
 ## Testes
 
 ```bash
@@ -420,6 +446,48 @@ delivery e o nome do entregador só depois da saída para entrega.
 | `AWAITING_PICKUP`  | Pronto para retirada  | retirada         |
 | `COMPLETED`        | Concluído             | final            |
 | `CANCELLED`        | Cancelado             | final            |
+
+### Pagamentos (Mercado Pago)
+
+| Método | Rota                                    | Descrição                        | Acesso                         |
+| ------ | --------------------------------------- | -------------------------------- | ------------------------------ |
+| POST   | `/api/v1/payments/webhooks/mercadopago` | Recebe notificações de pagamento | Mercado Pago (assinatura HMAC) |
+
+Fluxo completo do pagamento:
+
+```
+Front-end ── POST /orders ──────────────► API cria o pedido (AWAITING_PAYMENT) + preferência
+Front-end ◄─ checkout.checkoutUrl ──────── API
+Cliente paga no Checkout Pro (Pix ou cartão)
+Mercado Pago ── webhook assinado ───────► API valida x-signature → consulta o pagamento no MP
+                                           → confirma o pedido e baixa o estoque (transação)
+Cliente volta para FRONTEND_URL/pedidos/:id?pagamento=...
+Front-end ── POST /orders/:id/payment/sync ► API consulta o MP (caso o webhook ainda não tenha chegado)
+Front-end acompanha o status via GET /orders/:id ou Supabase Realtime
+```
+
+Garantias de integridade:
+
+- **A confirmação nunca vem do redirecionamento**: tanto o webhook quanto a sincronização consultam
+  o pagamento diretamente na API do Mercado Pago, que é a fonte da verdade.
+- **Webhook autenticado**: o cabeçalho `x-signature` é validado (HMAC-SHA256 do manifesto
+  `id:<data.id>;request-id:<x-request-id>;ts:<ts>;` com `MERCADOPAGO_WEBHOOK_SECRET`, comparação em
+  tempo constante). Assinatura inválida → `401`; segredo ausente → `503` (o MP reenvia depois).
+- **Idempotência**: a linha do pedido é bloqueada durante o processamento (notificações duplicadas
+  ou simultâneas são serializadas), o pagamento é único por `provider_payment_id`, as transições só
+  ocorrem a partir do status esperado e os reembolsos usam `X-Idempotency-Key`.
+- **Valor conferido**: o valor e a moeda pagos precisam ser iguais ao total do pedido calculado pelo
+  servidor; caso contrário o pedido é cancelado e o valor reembolsado.
+- **Baixa de estoque atômica**: na mesma transação, as linhas de estoque do dia são bloqueadas
+  (`SELECT ... FOR UPDATE`, sempre na mesma ordem) e decrementadas condicionalmente — compras
+  simultâneas nunca vendem além do disponível.
+- **Reembolso automático** quando o estoque acabou entre o checkout e o pagamento, quando o valor
+  diverge, ou quando chega um pagamento aprovado para pedido já cancelado/já pago. Falhas de
+  reembolso ficam registradas (`refundStatus: FAILED`) e são retentadas na próxima notificação.
+- **Estornos/chargebacks** feitos no painel do Mercado Pago cancelam o pedido em andamento e devolvem
+  o estoque (se no mesmo dia).
+- Pagamento **recusado** não cancela o pedido: o cliente pode tentar novamente
+  (`POST /orders/:id/payment`). Nenhum dado de cartão passa pela API ou é armazenado.
 
 ### Administração — catálogo
 

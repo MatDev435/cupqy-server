@@ -31,3 +31,10 @@ export const listOrdersQuery = z.object({
 });
 
 export const orderParams = idParams('orderId');
+
+export const syncPaymentBody = z.strictObject({
+  paymentId: z
+    .string()
+    .regex(/^\d{1,20}$/, 'Identificador de pagamento inválido.')
+    .optional(),
+});

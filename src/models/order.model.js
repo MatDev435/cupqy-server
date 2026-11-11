@@ -78,3 +78,13 @@ export function anonymizeByUser(userId, db = prisma) {
 export function setPreference(id, mpPreferenceId, db = prisma) {
   return db.order.update({ where: { id }, data: { mpPreferenceId } });
 }
+
+/** Bloqueia a linha do pedido até o fim da transação (serializa webhooks concorrentes). */
+export async function lockById(id, db) {
+  const rows = await db.$queryRaw`SELECT id FROM orders WHERE id = ${id}::uuid FOR UPDATE`;
+  return rows.length > 0;
+}
+
+export function update(id, data, db = prisma) {
+  return db.order.update({ where: { id }, data });
+}
