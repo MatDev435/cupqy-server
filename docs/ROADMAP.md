@@ -20,7 +20,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 - [x] **7. Catálogo público** — listagem, busca, filtros, detalhes, categorias e restrições.
 - [x] **8. Gestão do catálogo (admin)** — CRUD de cupcakes, categorias e restrições; exclusão lógica.
 - [x] **9. Imagens (Supabase Storage)** — URLs assinadas de upload, confirmação, substituição e remoção.
-- [ ] **10. Estoque diário** — gestão pelo admin, alertas de estoque baixo.
+- [x] **10. Estoque diário** — gestão pelo admin, alertas de estoque baixo.
 - [ ] **11. Frete e loja** — consulta de CEP, geocodificação, cálculo de frete, informações da loja.
 - [ ] **12. Carrinho** — validação de itens, preços e estoque.
 - [ ] **13. Pedidos** — checkout, listagem, histórico paginado, detalhes, cancelamento.

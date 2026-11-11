@@ -56,6 +56,7 @@ const envSchema = z.object({
     .string()
     .refine(isValidTimeZone, 'Fuso horário IANA inválido')
     .default('America/Sao_Paulo'),
+  LOW_STOCK_THRESHOLD: z.coerce.number().int().min(1).max(1000).default(5),
 
   // Rate limiting
   RATE_LIMIT_ENABLED: booleanish.default(true),
@@ -118,6 +119,7 @@ export function parseEnv(rawEnv) {
     },
     store: {
       timeZone: env.STORE_TIMEZONE,
+      lowStockThreshold: env.LOW_STOCK_THRESHOLD,
     },
     rateLimit: {
       enabled: env.RATE_LIMIT_ENABLED,

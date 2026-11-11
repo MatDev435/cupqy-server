@@ -381,6 +381,20 @@ restringidos também na configuração do bucket. Nenhum binário é armazenado 
 `SUPABASE_STORAGE_BUCKET` como público, com limite de 5 MB e tipos `image/jpeg`, `image/png` e
 `image/webp`.
 
+### Administração — estoque diário
+
+| Método | Rota                               | Descrição                                                                  | Acesso |
+| ------ | ---------------------------------- | -------------------------------------------------------------------------- | ------ |
+| GET    | `/api/v1/admin/stock?date=`        | Estoque do dia (padrão: hoje) com alertas e resumo                         | Admin  |
+| GET    | `/api/v1/admin/stock/alerts?date=` | Apenas cupcakes ativos com estoque baixo ou esgotados                      | Admin  |
+| PUT    | `/api/v1/admin/stock`              | Define quantidades em lote (`{ date?, items: [{ cupcakeId, quantity }] }`) | Admin  |
+| PUT    | `/api/v1/admin/stock/:cupcakeId`   | Define a quantidade de um cupcake (use `0` para zerar)                     | Admin  |
+
+Regras: o estoque é **por dia, no fuso da loja** — a quantidade definida representa o que ainda
+pode ser vendido no dia. Dias passados não podem ser alterados (dias futuros podem ser planejados).
+A gravação em lote é atômica. A **baixa automática** acontece na confirmação do pagamento, com
+proteção contra compras simultâneas (ver Pedidos e Pagamentos).
+
 ### Administração — usuários
 
 | Método | Rota                               | Descrição                                                      | Acesso |
