@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authorize } from '../../middlewares/authorize.js';
 import { validate } from '../../middlewares/validate.js';
+import { createRateLimiter } from '../../middlewares/rateLimit.js';
 import { Permissions } from '../../config/permissions.js';
 import * as controller from '../../controllers/catalogAdmin.controller.js';
 import {
@@ -10,6 +11,8 @@ import {
   cupcakeParams,
   dietaryTagBody,
   dietaryTagParams,
+  attachImageBody,
+  imageUploadBody,
   listAdminCupcakesQuery,
   updateCategoryBody,
   updateCupcakeBody,
@@ -17,6 +20,12 @@ import {
 
 /** Gerenciamento do catálogo (US15) — somente administradores. */
 const router = Router();
+
+const uploadUrlLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  message: 'Muitas solicitações de upload. Aguarde alguns minutos.',
+});
 
 router.use(authorize(Permissions.CATALOG_MANAGE));
 
@@ -32,6 +41,24 @@ router.delete(
   '/cupcakes/:cupcakeId',
   validate({ params: cupcakeParams }),
   controller.deleteCupcake,
+);
+
+// Imagem: 1) URL assinada → 2) upload direto ao Storage pelo front-end → 3) confirmação
+router.post(
+  '/cupcakes/:cupcakeId/image/upload-url',
+  uploadUrlLimiter,
+  validate({ params: cupcakeParams, body: imageUploadBody }),
+  controller.requestImageUpload,
+);
+router.put(
+  '/cupcakes/:cupcakeId/image',
+  validate({ params: cupcakeParams, body: attachImageBody }),
+  controller.attachImage,
+);
+router.delete(
+  '/cupcakes/:cupcakeId/image',
+  validate({ params: cupcakeParams }),
+  controller.removeImage,
 );
 
 router.get('/categories', controller.listCategories);

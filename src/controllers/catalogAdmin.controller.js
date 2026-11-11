@@ -1,4 +1,5 @@
 import * as catalogAdminService from '../services/catalogAdmin.service.js';
+import * as cupcakeImageService from '../services/cupcakeImage.service.js';
 import { toAdminCupcake, toCategoryResponse, toDietaryTagResponse } from '../views/catalog.view.js';
 
 // Cupcakes
@@ -28,6 +29,28 @@ export async function updateCupcake(req, res) {
 export async function deleteCupcake(req, res) {
   const result = await catalogAdminService.deleteCupcake(req.validated.params.cupcakeId);
   res.json({ data: result });
+}
+
+// Imagens (Supabase Storage)
+export async function requestImageUpload(req, res) {
+  const upload = await cupcakeImageService.requestImageUpload(
+    req.validated.params.cupcakeId,
+    req.validated.body,
+  );
+  res.status(201).json({ data: upload });
+}
+
+export async function attachImage(req, res) {
+  const cupcake = await cupcakeImageService.attachImage(
+    req.validated.params.cupcakeId,
+    req.validated.body.path,
+  );
+  res.json({ data: toAdminCupcake(cupcake) });
+}
+
+export async function removeImage(req, res) {
+  const cupcake = await cupcakeImageService.removeImage(req.validated.params.cupcakeId);
+  res.json({ data: toAdminCupcake(cupcake) });
 }
 
 // Categorias

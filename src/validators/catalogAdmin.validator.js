@@ -1,4 +1,5 @@
 import { z } from './zod.js';
+import { IMAGE_MAX_SIZE_BYTES, IMAGE_TYPES } from '../config/images.js';
 import {
   atLeastOneField,
   csvList,
@@ -99,3 +100,18 @@ export const categoryParams = idParams('categoryId');
 export const dietaryTagBody = z.strictObject({ name: requiredText(60, 2) });
 
 export const dietaryTagParams = idParams('dietaryTagId');
+
+export const imageUploadBody = z.strictObject({
+  contentType: z.enum(Object.keys(IMAGE_TYPES), {
+    error: 'Formato não suportado. Envie JPG, PNG ou WebP.',
+  }),
+  sizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(IMAGE_MAX_SIZE_BYTES, 'A imagem deve ter no máximo 5 MB.'),
+});
+
+export const attachImageBody = z.strictObject({
+  path: z.string().trim().min(1).max(255),
+});

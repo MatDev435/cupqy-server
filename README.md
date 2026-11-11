@@ -324,21 +324,24 @@ Cada cupcake traz `priceCents` (centavos), `imageUrl` (URL pública do Supabase 
 
 ### Administração — catálogo
 
-| Método | Rota                                       | Descrição                                                        | Acesso |
-| ------ | ------------------------------------------ | ---------------------------------------------------------------- | ------ |
-| GET    | `/api/v1/admin/cupcakes`                   | Lista ativos e inativos (`search`, `status`, `category`, `sort`) | Admin  |
-| POST   | `/api/v1/admin/cupcakes`                   | Cadastra cupcake                                                 | Admin  |
-| GET    | `/api/v1/admin/cupcakes/:cupcakeId`        | Detalha (inclui inativos)                                        | Admin  |
-| PATCH  | `/api/v1/admin/cupcakes/:cupcakeId`        | Edita dados, preço, status, categoria e restrições               | Admin  |
-| DELETE | `/api/v1/admin/cupcakes/:cupcakeId`        | Exclui (lógica se já vendido; física caso contrário)             | Admin  |
-| GET    | `/api/v1/admin/categories`                 | Lista categorias                                                 | Admin  |
-| POST   | `/api/v1/admin/categories`                 | Cria categoria (slug gerado automaticamente)                     | Admin  |
-| PATCH  | `/api/v1/admin/categories/:categoryId`     | Edita categoria                                                  | Admin  |
-| DELETE | `/api/v1/admin/categories/:categoryId`     | Remove categoria sem cupcakes vinculados                         | Admin  |
-| GET    | `/api/v1/admin/dietary-tags`               | Lista restrições alimentares                                     | Admin  |
-| POST   | `/api/v1/admin/dietary-tags`               | Cria restrição                                                   | Admin  |
-| PATCH  | `/api/v1/admin/dietary-tags/:dietaryTagId` | Renomeia restrição                                               | Admin  |
-| DELETE | `/api/v1/admin/dietary-tags/:dietaryTagId` | Remove restrição (e seus vínculos)                               | Admin  |
+| Método | Rota                                                 | Descrição                                                        | Acesso |
+| ------ | ---------------------------------------------------- | ---------------------------------------------------------------- | ------ |
+| GET    | `/api/v1/admin/cupcakes`                             | Lista ativos e inativos (`search`, `status`, `category`, `sort`) | Admin  |
+| POST   | `/api/v1/admin/cupcakes`                             | Cadastra cupcake                                                 | Admin  |
+| GET    | `/api/v1/admin/cupcakes/:cupcakeId`                  | Detalha (inclui inativos)                                        | Admin  |
+| PATCH  | `/api/v1/admin/cupcakes/:cupcakeId`                  | Edita dados, preço, status, categoria e restrições               | Admin  |
+| DELETE | `/api/v1/admin/cupcakes/:cupcakeId`                  | Exclui (lógica se já vendido; física caso contrário)             | Admin  |
+| POST   | `/api/v1/admin/cupcakes/:cupcakeId/image/upload-url` | Gera URL assinada para upload da foto                            | Admin  |
+| PUT    | `/api/v1/admin/cupcakes/:cupcakeId/image`            | Confirma o upload e vincula a foto (substitui a anterior)        | Admin  |
+| DELETE | `/api/v1/admin/cupcakes/:cupcakeId/image`            | Remove a foto                                                    | Admin  |
+| GET    | `/api/v1/admin/categories`                           | Lista categorias                                                 | Admin  |
+| POST   | `/api/v1/admin/categories`                           | Cria categoria (slug gerado automaticamente)                     | Admin  |
+| PATCH  | `/api/v1/admin/categories/:categoryId`               | Edita categoria                                                  | Admin  |
+| DELETE | `/api/v1/admin/categories/:categoryId`               | Remove categoria sem cupcakes vinculados                         | Admin  |
+| GET    | `/api/v1/admin/dietary-tags`                         | Lista restrições alimentares                                     | Admin  |
+| POST   | `/api/v1/admin/dietary-tags`                         | Cria restrição                                                   | Admin  |
+| PATCH  | `/api/v1/admin/dietary-tags/:dietaryTagId`           | Renomeia restrição                                               | Admin  |
+| DELETE | `/api/v1/admin/dietary-tags/:dietaryTagId`           | Remove restrição (e seus vínculos)                               | Admin  |
 
 Regras do catálogo:
 
@@ -347,6 +350,36 @@ Regras do catálogo:
   preservando o histórico de pedidos; cupcake nunca vendido é removido do banco junto com a
   imagem (`deletion: "hard"`). O banco também impede (FK `RESTRICT`) apagar um item vendido.
 - `isActive: false` tira o cupcake do catálogo público sem excluí-lo.
+
+#### Upload de imagens (Supabase Storage)
+
+As fotos são enviadas **diretamente do front-end ao Supabase Storage**, sem trafegar pelo Express,
+usando URLs assinadas geradas pela API somente para administradores:
+
+```js
+// 1. API valida admin, tipo (JPG/PNG/WebP) e tamanho (≤ 5 MB) e define o caminho do arquivo
+const { data } = await api.post(`/admin/cupcakes/${id}/image/upload-url`, {
+  contentType: file.type,
+  sizeBytes: file.size,
+});
+
+// 2. Front-end envia o arquivo ao Storage com o token assinado (válido por 2 h)
+await supabase.storage.from(data.bucket).uploadToSignedUrl(data.path, data.token, file, {
+  contentType: file.type,
+});
+
+// 3. API confere o arquivo no Storage (existência, tipo, tamanho) e vincula ao cupcake
+await api.put(`/admin/cupcakes/${id}/image`, { path: data.path });
+```
+
+Segurança: o caminho é sempre `cupcakes/<id-do-cupcake>/<uuid>.<ext>` (definido pelo servidor);
+arquivos inválidos são apagados; a imagem anterior é removida na substituição; o bucket é público
+apenas para leitura, sem políticas de escrita para `anon`/`authenticated`, e tem tipos/tamanho
+restringidos também na configuração do bucket. Nenhum binário é armazenado no PostgreSQL.
+
+**Configuração do bucket:** `npm run storage:setup` cria (ou atualiza) o bucket definido em
+`SUPABASE_STORAGE_BUCKET` como público, com limite de 5 MB e tipos `image/jpeg`, `image/png` e
+`image/webp`.
 
 ### Administração — usuários
 

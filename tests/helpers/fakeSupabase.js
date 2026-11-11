@@ -75,6 +75,30 @@ export const fakeStorage = {
 
 function storageBucket(bucket) {
   return {
+    async createSignedUploadUrl(path) {
+      const token = `upload-token-${randomUUID()}`;
+      return {
+        data: {
+          path,
+          token,
+          signedUrl: `https://storage.test/object/upload/sign/${bucket}/${path}?token=${token}`,
+        },
+        error: null,
+      };
+    },
+    async info(path) {
+      const metadata = state.storageObjects.get(`${bucket}/${path}`);
+      if (!metadata) {
+        return {
+          data: null,
+          error: Object.assign(new Error('Object not found'), { status: 400, statusCode: '404' }),
+        };
+      }
+      return {
+        data: { name: path, size: metadata.size, contentType: metadata.mimetype },
+        error: null,
+      };
+    },
     async remove(paths) {
       for (const path of paths) {
         state.storageObjects.delete(`${bucket}/${path}`);

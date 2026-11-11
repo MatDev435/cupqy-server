@@ -22,7 +22,8 @@
     "postinstall": "prisma generate",
     "db:supabase": "prisma db execute --file supabase/sql/01_security.sql && prisma db execute --file supabase/sql/02_realtime.sql",
     "test:integration": "vitest run --project integration",
-    "admin:promote": "node scripts/promote-admin.js"
+    "admin:promote": "node scripts/promote-admin.js",
+    "storage:setup": "node scripts/setup-storage.js"
   },
   "license": "UNLICENSED",
   "type": "module",
