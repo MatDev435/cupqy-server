@@ -1,0 +1,64 @@
+# Render Blueprint — API do Cupqy
+# Uso: Render Dashboard → New → Blueprint → selecione este repositório.
+# Variáveis com "sync: false" são solicitadas no painel (nunca versione segredos).
+services:
+  - type: web
+    name: cupqy-api
+    runtime: node
+    plan: free
+    # Região mais próxima do Supabase em São Paulo (sa-east-1) disponível no Render.
+    region: virginia
+    branch: main
+    # Instala dependências de produção, gera o Prisma Client (postinstall) e aplica as migrations.
+    buildCommand: npm ci && npm run db:deploy
+    startCommand: npm start
+    healthCheckPath: /health
+    # Deploys apenas manuais (altere para "checksPass" para publicar após o CI passar).
+    autoDeployTrigger: 'off'
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: '24'
+      - key: TRUST_PROXY
+        value: '1'
+      - key: LOG_LEVEL
+        value: info
+      # Supabase
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: cupcake-images
+      # Front-end (Vercel) e URL pública desta API
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: API_PUBLIC_URL
+        sync: false
+      # Mercado Pago (credenciais de TESTE)
+      - key: MERCADOPAGO_ACCESS_TOKEN
+        sync: false
+      - key: MERCADOPAGO_WEBHOOK_SECRET
+        sync: false
+      - key: MERCADOPAGO_SANDBOX
+        value: 'true'
+      # Loja e frete
+      - key: STORE_TIMEZONE
+        value: America/Sao_Paulo
+      - key: STORE_NAME
+        value: Cupqy
+      - key: STORE_ADDRESS
+        sync: false
+      - key: STORE_LATITUDE
+        sync: false
+      - key: STORE_LONGITUDE
+        sync: false

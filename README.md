@@ -1,5 +1,7 @@
 # Cupqy — API (cupqy-server)
 
+[![CI](https://github.com/MatDev435/cupqy-server/actions/workflows/ci.yml/badge.svg)](https://github.com/MatDev435/cupqy-server/actions/workflows/ci.yml)
+
 API REST do **Cupqy**, e-commerce de uma loja de cupcakes: catálogo, carrinho, checkout com
 delivery ou retirada, pagamentos via Mercado Pago, painel da cozinha e painel administrativo.
 
@@ -664,6 +666,54 @@ fica sem administrador (`LAST_ADMIN`, protegido inclusive contra alterações si
 
 **Primeiro administrador:** depois de se cadastrar no app, rode
 `npm run admin:promote -- seu-email@dominio.com` (aceita `BAKER` como segundo argumento).
+
+## Deploy no Render
+
+A API está pronta para o Render (Blueprint em [`render.yaml`](render.yaml)):
+
+| Item         | Configuração                                                             |
+| ------------ | ------------------------------------------------------------------------ |
+| Build        | `npm ci && npm run db:deploy` (gera o Prisma Client e aplica migrations) |
+| Start        | `npm start`                                                              |
+| Porta        | `PORT` injetada pelo Render                                              |
+| Health check | `GET /health` (o Render verifica antes de liberar cada deploy)           |
+| Encerramento | `SIGTERM` → para de aceitar conexões, encerra jobs e o pool do banco     |
+| HTTPS        | Terminado pelo Render; a API exige HTTPS em produção (`FORCE_HTTPS`)     |
+| Proxy        | `TRUST_PROXY=1` (IP real do cliente para rate limiting e logs)           |
+| Logs         | JSON estruturado (Pino), com `X-Request-Id` por requisição               |
+
+Passo a passo:
+
+1. No Render: **New → Blueprint** e selecione este repositório (ou crie um _Web Service_ Node com os
+   comandos acima).
+2. Preencha as variáveis marcadas como `sync: false` (ver [Variáveis de ambiente](#variáveis-de-ambiente)):
+   - `DATABASE_URL`/`DIRECT_URL` do **pooler** do Supabase (o Render não possui saída IPv6);
+   - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`;
+   - `CORS_ORIGINS` com a URL do front-end na Vercel (ex.:
+     `https://cupqy.vercel.app,https://cupqy-*.vercel.app`) e `FRONTEND_URL`;
+   - `API_PUBLIC_URL` com a URL do serviço (ex.: `https://cupqy-api.onrender.com`);
+   - credenciais **de teste** do Mercado Pago e o segredo do webhook;
+   - endereço e coordenadas da loja.
+3. Faça o deploy manual (o Blueprint vem com `autoDeployTrigger: off`; troque para `checksPass` para
+   publicar automaticamente quando o CI passar).
+4. Após o primeiro deploy (uma única vez):
+   ```bash
+   npm run db:supabase       # RLS, triggers do Auth e Realtime (ou cole supabase/sql/ no SQL Editor)
+   npm run storage:setup     # bucket de imagens
+   npm run admin:promote -- dono@cupqy.com.br   # depois que o dono se cadastrar no app
+   ```
+5. Configure o webhook do Mercado Pago com `https://<sua-api>.onrender.com/api/v1/payments/webhooks/mercadopago`.
+6. Valide com `GET /health/ready` e abra `GET /api/docs`.
+
+> **Plano gratuito:** a instância "dorme" após ~15 min sem tráfego e leva alguns segundos para
+> acordar; o job de expiração de pedidos retoma ao acordar. O Mercado Pago reenvia webhooks que
+> falharem durante esse intervalo.
+
+### Integração contínua
+
+O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda lint, verificação de
+formatação e todos os testes (unitários e integração, com PostgreSQL 17 como serviço) em cada push
+e pull request.
 
 ## Scripts
 

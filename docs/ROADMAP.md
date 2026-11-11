@@ -4,6 +4,10 @@ Este arquivo registra o andamento incremental do back-end. Cada etapa só é mar
 concluída depois de **testes executados com sucesso, documentação atualizada e commit realizado**.
 
 > Para retomar o trabalho: procure a primeira etapa não marcada (`[ ]`).
+>
+> **Status:** todas as etapas planejadas foram concluídas. Próximos passos dependem de decisões
+> externas: criar os projetos no Supabase/Mercado Pago/Render, preencher as variáveis e autorizar o
+> primeiro deploy (ver README → Deploy no Render).
 
 ## Etapas
 
@@ -33,7 +37,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 - [x] **19. Gestão de pedidos (admin)** — listagem geral e cancelamento com reembolso.
 - [x] **20. Dashboard financeiro** — faturamento e contagem de pedidos por período.
 - [x] **21. Documentação OpenAPI/Swagger**.
-- [ ] **22. Deploy (Render) e CI** — render.yaml, GitHub Actions.
+- [x] **22. Deploy (Render) e CI** — render.yaml, GitHub Actions.
 
 ## Registro de decisões técnicas
 
