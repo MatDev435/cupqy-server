@@ -17,6 +17,15 @@ const commaSeparatedList = z.string().transform((value) =>
     .filter(Boolean),
 );
 
+function isValidTimeZone(timeZone) {
+  try {
+    new Intl.DateTimeFormat('pt-BR', { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3333),
@@ -27,6 +36,17 @@ const envSchema = z.object({
   TRUST_PROXY: z.string().default('1'),
   FORCE_HTTPS: booleanish.optional(),
   JSON_BODY_LIMIT: z.string().default('100kb'),
+
+  // Banco de dados (Supabase PostgreSQL)
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
+  DATABASE_SSL_CA: z.string().optional(),
+
+  // Loja
+  STORE_TIMEZONE: z
+    .string()
+    .refine(isValidTimeZone, 'Fuso horário IANA inválido')
+    .default('America/Sao_Paulo'),
 
   // Rate limiting
   RATE_LIMIT_ENABLED: booleanish.default(true),
@@ -75,6 +95,14 @@ export function parseEnv(rawEnv) {
     },
     cors: {
       origins: env.CORS_ORIGINS,
+    },
+    database: {
+      url: env.DATABASE_URL,
+      poolMax: env.DATABASE_POOL_MAX,
+      sslCa: env.DATABASE_SSL_CA?.replace(/\\n/g, '\n'),
+    },
+    store: {
+      timeZone: env.STORE_TIMEZONE,
     },
     rateLimit: {
       enabled: env.RATE_LIMIT_ENABLED,

@@ -1,0 +1,301 @@
+// Schema do banco de dados do Cupqy (Supabase PostgreSQL).
+//
+// - As credenciais e a autenticação ficam no Supabase Auth (schema "auth").
+//   Aqui guardamos apenas o PERFIL complementar, ligado pelo mesmo UUID do usuário.
+// - Valores monetários são armazenados em centavos (inteiros) para evitar erros de arredondamento.
+// - Restrições extras (CHECKs, RLS, sequência do número do pedido) estão no SQL da migration.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Papéis de acesso (RBAC). Nunca são definidos pelo front-end.
+enum UserRole {
+  CUSTOMER
+  BAKER
+  ADMIN
+}
+
+enum FulfillmentType {
+  DELIVERY
+  PICKUP
+}
+
+enum OrderStatus {
+  AWAITING_PAYMENT
+  IN_PREPARATION
+  AWAITING_COURIER
+  OUT_FOR_DELIVERY
+  AWAITING_PICKUP
+  COMPLETED
+  CANCELLED
+}
+
+enum CancellationReason {
+  CUSTOMER_REQUEST
+  PAYMENT_EXPIRED
+  PAYMENT_SETUP_FAILED
+  OUT_OF_STOCK
+  PAYMENT_AMOUNT_MISMATCH
+  PAYMENT_REFUNDED
+  ADMIN_REQUEST
+}
+
+enum PaymentProvider {
+  MERCADO_PAGO
+}
+
+enum PaymentStatus {
+  PENDING
+  IN_PROCESS
+  AUTHORIZED
+  APPROVED
+  IN_MEDIATION
+  REJECTED
+  CANCELLED
+  REFUNDED
+  CHARGED_BACK
+}
+
+enum RefundStatus {
+  NONE
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+/// Perfil complementar do usuário do Supabase Auth (id = auth.users.id).
+model Profile {
+  id        String    @id @db.Uuid
+  email     String?   @db.VarChar(255)
+  fullName  String?   @map("full_name") @db.VarChar(120)
+  phone     String?   @db.VarChar(20)
+  role      UserRole  @default(CUSTOMER)
+  /// Preenchido quando a conta é excluída (dados pessoais anonimizados).
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  addresses     Address[]
+  orders        Order[]
+  statusChanges OrderStatusHistory[]
+
+  @@index([role])
+  @@index([email])
+  @@map("profiles")
+}
+
+model Address {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  label        String?  @db.VarChar(40)
+  zipCode      String   @map("zip_code") @db.Char(8)
+  street       String   @db.VarChar(150)
+  number       String   @db.VarChar(20)
+  complement   String?  @db.VarChar(100)
+  neighborhood String   @db.VarChar(100)
+  city         String   @db.VarChar(100)
+  state        String   @db.Char(2)
+  /// Coordenadas obtidas na geocodificação (cache para o cálculo de frete).
+  latitude     Float?
+  longitude    Float?
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+model Category {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @unique @db.VarChar(60)
+  slug        String   @unique @db.VarChar(70)
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  cupcakes Cupcake[]
+
+  @@map("categories")
+}
+
+/// Características/restrições alimentares (ex.: Sem Lactose, Sem Glúten, Vegano).
+model DietaryTag {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @unique @db.VarChar(60)
+  slug      String   @unique @db.VarChar(70)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  cupcakes CupcakeDietaryTag[]
+
+  @@map("dietary_tags")
+}
+
+model Cupcake {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String    @db.VarChar(100)
+  description     String    @db.VarChar(1000)
+  flavor          String    @db.VarChar(60)
+  ingredients     String    @db.VarChar(1000)
+  weightGrams     Int?      @map("weight_grams")
+  size            String?   @db.VarChar(60)
+  /// Tabela nutricional por unidade (calorias, carboidratos, proteínas...).
+  nutritionalInfo Json?     @map("nutritional_info")
+  priceCents      Int       @map("price_cents")
+  /// Caminho do objeto no bucket do Supabase Storage.
+  imagePath       String?   @map("image_path") @db.VarChar(255)
+  isActive        Boolean   @default(true) @map("is_active")
+  /// Exclusão lógica (cupcakes já vendidos nunca são removidos fisicamente).
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(3)
+  categoryId      String?   @map("category_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  category    Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  dietaryTags CupcakeDietaryTag[]
+  dailyStocks DailyStock[]
+  orderItems  OrderItem[]
+
+  @@index([isActive, deletedAt])
+  @@index([categoryId])
+  @@index([name])
+  @@index([flavor])
+  @@map("cupcakes")
+}
+
+model CupcakeDietaryTag {
+  cupcakeId    String @map("cupcake_id") @db.Uuid
+  dietaryTagId String @map("dietary_tag_id") @db.Uuid
+
+  cupcake    Cupcake    @relation(fields: [cupcakeId], references: [id], onDelete: Cascade)
+  dietaryTag DietaryTag @relation(fields: [dietaryTagId], references: [id], onDelete: Cascade)
+
+  @@id([cupcakeId, dietaryTagId])
+  @@index([dietaryTagId])
+  @@map("cupcake_dietary_tags")
+}
+
+/// Quantidade disponível de cada cupcake em um dia (fuso horário da loja).
+model DailyStock {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cupcakeId String   @map("cupcake_id") @db.Uuid
+  date      DateTime @db.Date
+  quantity  Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  cupcake Cupcake @relation(fields: [cupcakeId], references: [id], onDelete: Cascade)
+
+  @@unique([cupcakeId, date])
+  @@index([date])
+  @@map("daily_stock")
+}
+
+model Order {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// Número amigável exibido ao cliente e à cozinha (começa em 1001).
+  orderNumber        Int                 @unique @default(autoincrement()) @map("order_number")
+  userId             String              @map("user_id") @db.Uuid
+  status             OrderStatus         @default(AWAITING_PAYMENT)
+  fulfillmentType    FulfillmentType     @map("fulfillment_type")
+  subtotalCents      Int                 @map("subtotal_cents")
+  deliveryFeeCents   Int                 @default(0) @map("delivery_fee_cents")
+  totalCents         Int                 @map("total_cents")
+  notes              String?             @db.VarChar(500)
+  /// Cópia do endereço no momento da compra (o endereço salvo pode mudar depois).
+  deliveryAddress    Json?               @map("delivery_address")
+  deliveryDistanceKm Float?              @map("delivery_distance_km")
+  estimatedMinutes   Int?                @map("estimated_minutes")
+  saveAddress        Boolean             @default(false) @map("save_address")
+  courierName        String?             @map("courier_name") @db.VarChar(120)
+  /// Dia do estoque do qual os itens foram baixados (definido na confirmação do pagamento).
+  stockDate          DateTime?           @map("stock_date") @db.Date
+  mpPreferenceId     String?             @map("mp_preference_id") @db.VarChar(100)
+  paymentExpiresAt   DateTime?           @map("payment_expires_at") @db.Timestamptz(3)
+  paidAt             DateTime?           @map("paid_at") @db.Timestamptz(3)
+  completedAt        DateTime?           @map("completed_at") @db.Timestamptz(3)
+  cancelledAt        DateTime?           @map("cancelled_at") @db.Timestamptz(3)
+  cancellationReason CancellationReason? @map("cancellation_reason")
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user          Profile              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items         OrderItem[]
+  payments      Payment[]
+  statusHistory OrderStatusHistory[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, paidAt])
+  @@index([status, completedAt])
+  @@index([status, paymentExpiresAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id             String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId        String @map("order_id") @db.Uuid
+  cupcakeId      String @map("cupcake_id") @db.Uuid
+  /// Cópias do nome e preço no momento da compra (histórico fiel).
+  cupcakeName    String @map("cupcake_name") @db.VarChar(100)
+  unitPriceCents Int    @map("unit_price_cents")
+  quantity       Int
+  subtotalCents  Int    @map("subtotal_cents")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// Restrict impede apagar fisicamente um cupcake que já foi vendido.
+  cupcake Cupcake @relation(fields: [cupcakeId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([cupcakeId])
+  @@map("order_items")
+}
+
+model Payment {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId           String          @map("order_id") @db.Uuid
+  provider          PaymentProvider @default(MERCADO_PAGO)
+  providerPaymentId String          @map("provider_payment_id") @db.VarChar(64)
+  status            PaymentStatus
+  statusDetail      String?         @map("status_detail") @db.VarChar(100)
+  /// Ex.: pix, visa, master (nenhum dado sensível de cartão é armazenado).
+  paymentMethodId   String?         @map("payment_method_id") @db.VarChar(50)
+  /// Ex.: bank_transfer, credit_card.
+  paymentTypeId     String?         @map("payment_type_id") @db.VarChar(50)
+  amountCents       Int             @map("amount_cents")
+  approvedAt        DateTime?       @map("approved_at") @db.Timestamptz(3)
+  refundStatus      RefundStatus    @default(NONE) @map("refund_status")
+  refundedAt        DateTime?       @map("refunded_at") @db.Timestamptz(3)
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, providerPaymentId])
+  @@index([orderId])
+  @@map("payments")
+}
+
+model OrderStatusHistory {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId     String       @map("order_id") @db.Uuid
+  fromStatus  OrderStatus? @map("from_status")
+  toStatus    OrderStatus  @map("to_status")
+  /// Usuário que fez a alteração (nulo quando feita pelo sistema, ex.: webhook).
+  changedById String?      @map("changed_by_id") @db.Uuid
+  note        String?      @db.VarChar(255)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedBy Profile? @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_history")
+}

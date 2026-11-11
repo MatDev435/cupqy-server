@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { parseEnv } from '../../../src/config/env.js';
+import { parseEnv as parse } from '../../../src/config/env.js';
+
+/** Variáveis obrigatórias mínimas; cada teste sobrescreve o que precisa. */
+const REQUIRED = {
+  DATABASE_URL: 'postgresql://user:pass@localhost:5432/cupqy',
+};
+
+const parseEnv = (env) => parse({ ...REQUIRED, ...env });
 
 describe('parseEnv', () => {
   it('aplica valores padrão seguros quando as variáveis opcionais não são informadas', () => {
@@ -36,6 +43,23 @@ describe('parseEnv', () => {
     expect(config.rateLimit.enabled).toBe(false);
     expect(config.rateLimit.windowMs).toBe(5 * 60 * 1000);
     expect(config.server.trustProxy).toBe('loopback');
+  });
+
+  it('expõe as configurações do banco e do fuso horário da loja', () => {
+    const config = parseEnv({ DATABASE_POOL_MAX: '5', DATABASE_SSL_CA: 'linha1\\nlinha2' });
+
+    expect(config.database).toEqual({
+      url: REQUIRED.DATABASE_URL,
+      poolMax: 5,
+      sslCa: 'linha1\nlinha2',
+    });
+    expect(config.store.timeZone).toBe('America/Sao_Paulo');
+  });
+
+  it('rejeita DATABASE_URL ausente, com protocolo errado ou fuso horário inválido', () => {
+    expect(() => parse({})).toThrow(/DATABASE_URL/);
+    expect(() => parseEnv({ DATABASE_URL: 'mysql://localhost/db' })).toThrow(/DATABASE_URL/);
+    expect(() => parseEnv({ STORE_TIMEZONE: 'Marte/Base_Alpha' })).toThrow(/STORE_TIMEZONE/);
   });
 
   it('lança erro listando as variáveis inválidas sem expor seus valores', () => {

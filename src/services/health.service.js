@@ -1,12 +1,8 @@
 import pkg from '../../package.json' with { type: 'json' };
+import { checkDatabaseConnection } from '../config/prisma.js';
 
-/** @type {Array<{ name: string, check: () => Promise<void> }>} */
-const readinessChecks = [];
-
-/** Registra uma dependência verificada pelo endpoint de prontidão (ex.: banco). */
-export function registerReadinessCheck(name, check) {
-  readinessChecks.push({ name, check });
-}
+/** Dependências verificadas pelo endpoint de prontidão. */
+const readinessChecks = [{ name: 'database', check: checkDatabaseConnection }];
 
 export function getLiveness() {
   return {

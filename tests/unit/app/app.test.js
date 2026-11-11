@@ -1,10 +1,16 @@
 import express from 'express';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../../src/app.js';
+import { checkDatabaseConnection } from '../../../src/config/prisma.js';
 import { createRateLimiter } from '../../../src/middlewares/rateLimit.js';
 import { enforceHttps } from '../../../src/middlewares/enforceHttps.js';
 import { errorHandler } from '../../../src/middlewares/errorHandler.js';
+
+vi.mock('../../../src/config/prisma.js', () => ({
+  checkDatabaseConnection: vi.fn(),
+  prisma: {},
+}));
 
 const app = createApp();
 
@@ -17,10 +23,19 @@ describe('Aplicação Express', () => {
   });
 
   it('GET /health/ready responde ok quando todas as dependências estão disponíveis', async () => {
+    vi.mocked(checkDatabaseConnection).mockResolvedValue();
     const response = await request(app).get('/health/ready');
 
     expect(response.status).toBe(200);
-    expect(response.body.status).toBe('ok');
+    expect(response.body).toEqual({ status: 'ok', checks: [{ name: 'database', status: 'ok' }] });
+  });
+
+  it('GET /health/ready responde 503 quando o banco está indisponível', async () => {
+    vi.mocked(checkDatabaseConnection).mockRejectedValue(new Error('ECONNREFUSED'));
+    const response = await request(app).get('/health/ready');
+
+    expect(response.status).toBe(503);
+    expect(response.body.checks).toEqual([{ name: 'database', status: 'error' }]);
   });
 
   it('retorna 404 padronizado para rotas inexistentes', async () => {

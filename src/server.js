@@ -1,11 +1,12 @@
 import { createApp } from './app.js';
 import { config } from './config/env.js';
 import { logger } from './config/logger.js';
+import { disconnectDatabase } from './config/prisma.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
-/** Recursos liberados no encerramento (conexões, jobs). Preenchido nas próximas etapas. */
-const shutdownHooks = [];
+/** Recursos liberados no encerramento (na ordem). */
+const shutdownHooks = [disconnectDatabase];
 
 const app = createApp();
 
