@@ -89,6 +89,10 @@ const envSchema = z.object({
   PAYMENT_EXPIRATION_MINUTES: z.coerce.number().int().min(30).max(1440).default(30),
   MAX_PENDING_ORDERS_PER_USER: z.coerce.number().int().min(1).max(50).default(5),
 
+  // Jobs em segundo plano
+  JOBS_ENABLED: booleanish.optional(),
+  EXPIRE_ORDERS_INTERVAL_SECONDS: z.coerce.number().int().min(10).max(3600).default(60),
+
   // APIs externas de CEP e geocodificação
   EXTERNAL_HTTP_TIMEOUT_MS: z.coerce.number().int().min(500).max(30_000).default(4000),
   GEOCODING_USER_AGENT: z.string().min(3).default('cupqy-server/1.0'),
@@ -185,6 +189,10 @@ export function parseEnv(rawEnv) {
     orders: {
       paymentExpirationMinutes: env.PAYMENT_EXPIRATION_MINUTES,
       maxPendingPerUser: env.MAX_PENDING_ORDERS_PER_USER,
+    },
+    jobs: {
+      enabled: env.JOBS_ENABLED ?? env.NODE_ENV !== 'test',
+      expireOrdersIntervalMs: env.EXPIRE_ORDERS_INTERVAL_SECONDS * 1000,
     },
     externalApis: {
       timeoutMs: env.EXTERNAL_HTTP_TIMEOUT_MS,

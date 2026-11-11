@@ -2,11 +2,12 @@ import { createApp } from './app.js';
 import { config } from './config/env.js';
 import { logger } from './config/logger.js';
 import { disconnectDatabase } from './config/prisma.js';
+import { startJobs, stopJobs } from './jobs/scheduler.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
 /** Recursos liberados no encerramento (na ordem). */
-const shutdownHooks = [disconnectDatabase];
+const shutdownHooks = [stopJobs, disconnectDatabase];
 
 const app = createApp();
 
@@ -16,6 +17,7 @@ const server = app.listen(config.server.port, (error) => {
     process.exit(1);
   }
   logger.info(`Cupqy API ouvindo na porta ${config.server.port} (${config.env})`);
+  startJobs();
 });
 
 // Mantém conexões keep-alive abertas por mais tempo que o balanceador do Render.

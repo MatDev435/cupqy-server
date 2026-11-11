@@ -88,3 +88,13 @@ export async function lockById(id, db) {
 export function update(id, data, db = prisma) {
   return db.order.update({ where: { id }, data });
 }
+
+/** Pedidos aguardando pagamento cujo prazo terminou antes do instante informado. */
+export function findExpiredAwaitingPayment(before, limit, db = prisma) {
+  return db.order.findMany({
+    where: { status: 'AWAITING_PAYMENT', paymentExpiresAt: { lt: before } },
+    orderBy: { paymentExpiresAt: 'asc' },
+    select: { id: true, orderNumber: true },
+    take: limit,
+  });
+}

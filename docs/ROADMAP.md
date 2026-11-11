@@ -27,7 +27,7 @@ concluída depois de **testes executados com sucesso, documentação atualizada 
 - [x] **14. Mercado Pago Checkout Pro** — preferências de pagamento.
 - [x] **15. Webhooks de pagamento** — validação de assinatura, consulta ao gateway, confirmação
       idempotente com baixa atômica de estoque, reembolso automático.
-- [ ] **16. Expiração de pedidos não pagos** — job periódico.
+- [x] **16. Expiração de pedidos não pagos** — job periódico.
 - [ ] **17. Cozinha** — painel de pedidos ativos e avanço de status.
 - [ ] **18. Repetir pedido** — reconstrução do carrinho com preços e estoque atuais.
 - [ ] **19. Gestão de pedidos (admin)** — listagem geral e cancelamento com reembolso.

@@ -486,6 +486,10 @@ Garantias de integridade:
   reembolso ficam registradas (`refundStatus: FAILED`) e são retentadas na próxima notificação.
 - **Estornos/chargebacks** feitos no painel do Mercado Pago cancelam o pedido em andamento e devolvem
   o estoque (se no mesmo dia).
+- **Expiração**: um job (a cada `EXPIRE_ORDERS_INTERVAL_SECONDS`) cancela pedidos não pagos após
+  o prazo (`PAYMENT_EXPIRED`). Antes, consulta o Mercado Pago para não cancelar um pedido pago cujo
+  webhook se perdeu. As execuções nunca se sobrepõem e o job para no encerramento do servidor.
+  No plano gratuito do Render a instância "dorme" sem tráfego; o job retoma ao acordar.
 - Pagamento **recusado** não cancela o pedido: o cliente pode tentar novamente
   (`POST /orders/:id/payment`). Nenhum dado de cartão passa pela API ou é armazenado.
 
