@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildOrderUrl, buildPreferenceBody } from '../../../src/services/payment.service.js';
+import {
+  buildOrderDescription,
+  buildOrderUrl,
+  buildPreferenceBody,
+} from '../../../src/services/payment.service.js';
 import { config } from '../../../src/config/env.js';
 
 vi.mock('../../../src/config/prisma.js', () => ({ prisma: {} }));
@@ -24,11 +28,26 @@ describe('payment.service — preferência do Checkout Pro', () => {
     );
 
     expect(body.items).toEqual([
-      { id: 'c1', title: 'Chocolate', quantity: 2, unit_price: 9.9, currency_id: 'BRL' },
-      { id: 'c2', title: 'Limão', quantity: 1, unit_price: 12.55, currency_id: 'BRL' },
+      {
+        id: 'c1',
+        title: 'Chocolate',
+        description: 'Pedido #1042: 2× Chocolate, 1× Limão',
+        quantity: 2,
+        unit_price: 9.9,
+        currency_id: 'BRL',
+      },
+      {
+        id: 'c2',
+        title: 'Limão',
+        description: 'Pedido #1042: 2× Chocolate, 1× Limão',
+        quantity: 1,
+        unit_price: 12.55,
+        currency_id: 'BRL',
+      },
       {
         id: 'delivery-fee',
         title: 'Taxa de entrega',
+        description: 'Pedido #1042: 2× Chocolate, 1× Limão',
         quantity: 1,
         unit_price: 7.85,
         currency_id: 'BRL',
@@ -95,5 +114,22 @@ describe('payment.service — preferência do Checkout Pro', () => {
 
   it('no sandbox não pré-preenche o pagador (o comprador deve ser um usuário de teste)', () => {
     expect(buildPreferenceBody(order, { email: 'real@cupqy.test' }).payer).toBeUndefined();
+  });
+
+  it('resume os cupcakes e quantidades na descrição, respeitando o limite do Mercado Pago', () => {
+    expect(buildOrderDescription(order)).toBe('Pedido #1042: 2× Chocolate, 1× Limão');
+
+    const bigOrder = {
+      ...order,
+      items: Array.from({ length: 30 }, (_, i) => ({
+        cupcakeId: `c${i}`,
+        cupcakeName: `Cupcake sabor especial ${i}`,
+        unitPriceCents: 1000,
+        quantity: 1,
+      })),
+    };
+    const description = buildOrderDescription(bigOrder);
+    expect(description).toHaveLength(256);
+    expect(description.endsWith('…')).toBe(true);
   });
 });

@@ -61,10 +61,27 @@ export function buildOrderUrl(orderId) {
  * Monta a preferência do Checkout Pro a partir do pedido GRAVADO no banco
  * (valores calculados pelo servidor, nunca pelo front-end).
  */
+/** Limite de caracteres aceito pelo Mercado Pago na descrição do item. */
+const MAX_ITEM_DESCRIPTION_LENGTH = 256;
+
+/**
+ * Resumo legível do pedido (ex.: "Pedido #1042: 2× Chocolate, 1× Limão"), exibido
+ * na tela do Checkout Pro, que costuma agrupar vários itens sob um rótulo genérico.
+ */
+export function buildOrderDescription(order) {
+  const summary = order.items.map((item) => `${item.quantity}× ${item.cupcakeName}`).join(', ');
+  const description = `Pedido #${order.orderNumber}: ${summary}`;
+  return description.length > MAX_ITEM_DESCRIPTION_LENGTH
+    ? `${description.slice(0, MAX_ITEM_DESCRIPTION_LENGTH - 1)}…`
+    : description;
+}
+
 export function buildPreferenceBody(order, payer, now = new Date()) {
+  const description = buildOrderDescription(order);
   const items = order.items.map((item) => ({
     id: item.cupcakeId,
     title: item.cupcakeName,
+    description,
     quantity: item.quantity,
     unit_price: centsToReais(item.unitPriceCents),
     currency_id: 'BRL',
@@ -74,6 +91,7 @@ export function buildPreferenceBody(order, payer, now = new Date()) {
     items.push({
       id: 'delivery-fee',
       title: 'Taxa de entrega',
+      description,
       quantity: 1,
       unit_price: centsToReais(order.deliveryFeeCents),
       currency_id: 'BRL',
