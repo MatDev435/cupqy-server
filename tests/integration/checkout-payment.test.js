@@ -38,7 +38,14 @@ describe('Checkout com Mercado Pago (preferências)', () => {
     });
     expect(preference.body.external_reference).toBe(orderId);
     expect(preference.body.items).toEqual([
-      { id: cupcake.id, title: 'Chocolate', quantity: 3, unit_price: 9.9, currency_id: 'BRL' },
+      {
+        id: cupcake.id,
+        title: 'Chocolate',
+        description: expect.stringMatching(/^Pedido #\d+: 3× Chocolate$/),
+        quantity: 3,
+        unit_price: 9.9,
+        currency_id: 'BRL',
+      },
     ]);
     expect(preference.idempotencyKey).toMatch(new RegExp(`^preference-${orderId}-`));
 
